@@ -4,7 +4,7 @@
 
 # UHDBindings.jl
 
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://rgerzaguet.github.io/UHD.jl/dev/index.html)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://rgerzaguet.github.io/UHDBindings.jl/dev/index.html)
 
 
 ## Purpose 
