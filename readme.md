@@ -2,7 +2,7 @@
 <img src="docs/src/assets/logo.png" alt="UHDBindings.jl" width="380">
 </div>
 
-# UHD.jl
+# UHDBindings.jl
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://rgerzaguet.github.io/UHD.jl/dev/index.html)
 
