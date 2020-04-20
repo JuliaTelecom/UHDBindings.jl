@@ -13,7 +13,7 @@ This package proposes some bindings to UHD, the C driver of the Universal Softwa
 
 The purpose is to able to see the radio peripheral inside a Julia session and to be able to send and receive complex samples direclty within a Julia session. 
 
-For instance, in order to get 4096 samples at 868MHz with a instantaneous bandwidth of 16MHz, with a 30dB Rx Gain, the following Julia code will do the trick. 
+For instance, in order to get 4096 samples at 868MHz with a instantaneous bandwidth of 16MHz, with a 30dB Rx Gain, the following Julia code will do the trick and returns a vector with type Complex{Cfloat} with 4096 samples.
 
 	function main()
 		# ---------------------------------------------------- 
