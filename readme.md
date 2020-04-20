@@ -37,7 +37,7 @@ For instance, in order to get 4096 samples at 868MHz with a instantaneous bandwi
 		sig	= recv(radio,nbSamples);
 		# --- Release the radio ressources
 		close(radio); 
-		# --- Ouptut to signal 
+		# --- Output to signal 
 		return sig;
 	end
 
