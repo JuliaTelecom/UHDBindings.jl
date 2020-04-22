@@ -20,16 +20,16 @@ function main()
 	@printf("done -- \n");
 
 	# --- Setting a very first configuration 
-	global radio = openUHDRx(carrierFreq,samplingRate,gain); 
-	print(radio);
+	global radio = openUHD(carrierFreq,samplingRate,gain); 
+	print(radio.rx);
 	  
 	# --- Update configuration 
-	updateCarrierFreq!(radio,660e6);
-	updateSamplingRate!(radio,100e6);
-	updateGain!(radio,15);
-	print(radio);
+	updateCarrierFreq!(radio.rx,660e6);
+	updateSamplingRate!(radio.rx,100e6);
+	updateGain!(radio.rx,15);
+	print(radio.rx);
 	
-	updateSamplingRate!(radio,16e6);
+	updateSamplingRate!(radio.rx,16e6);
 	# --- Release USRP 
 	close(radio);
 end

@@ -60,7 +60,7 @@ function main()
 	gain			= 50.0; 
 
 	# --- Setting a very first configuration 
-	global radio = openUHDRx(carrierFreq,samplingRate,gain); 
+	global radio = openUHD(carrierFreq,samplingRate,gain); 
 	print(radio);
 	# --- Get samples 
 	nbSamples = 1016;
@@ -91,7 +91,7 @@ function mainFFT(radio,samplingRate,nbSamples)
 		# --- Create the radio object in function
 		carrierFreq		= 770e6;		
 		gain			= 50.0; 
-		radio			= openUHD("Rx",carrierFreq,samplingRate,gain); 
+		radio			= openUHD(carrierFreq,samplingRate,gain); 
 		updateSamplingRate!(radio,samplingRate);
 		toRelease		= true;
 	else 
@@ -172,7 +172,7 @@ function bench()
 	benchPerf	= zeros(Float64,length(fftVect),length(rateVect));
 	radioRate	= zeros(Float64,length(rateVect));
 	# --- Setting a very first configuration 
-	radio = openUHDRx(carrierFreq,1e6,gain); 
+	radio = openUHD(carrierFreq,1e6,gain); 
 	for (iR,targetRate) in enumerate(rateVect)
 		for (iN,fftSize) in enumerate(fftVect)
 			# --- Calling method 

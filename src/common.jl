@@ -1,3 +1,6 @@
+# ----------------------------------------------------
+# --- Run time UHD enumeration 
+# ---------------------------------------------------- 
 # Direclry inherited from C file tune_request.h
 @enum uhd_tune_request_policy_t begin 
 	UHD_TUNE_REQUEST_POLICY_NONE=78;
@@ -43,8 +46,12 @@ end
 	UHD_ERROR_UNKNOWN = 100
 end 
 
-# --- Runtime structure 
+# ----------------------------------------------------
+# --- Runtime structures
+# ---------------------------------------------------- 
 # These structures are necessary to run the wrapper 
+# They are used for parameter identification, Rx Tx stage config 
+# and to configure the LO
 struct uhd_stream_args_t 
 	cpu_format::Cstring
 	otw_format::Cstring;
@@ -71,7 +78,6 @@ struct stream_cmd
 	time_spec_full_secs::Cintmax_t;
 	time_spec_frac_secs::Cdouble;
 end
-
 # --- Structure to manipulate UHD time stamps
 struct Timestamp 
 	intPart::FORMAT_LONG;
@@ -99,4 +105,131 @@ end
 mutable struct uhd_usrp
 end
 
+# ----------------------------------------------------
+# --- Rx structures 
+# ---------------------------------------------------- 
+# --- C UHD streamer
+mutable struct uhd_rx_streamer
+end
+# --- Metadata structure 
+struct uhd_rx_metadata 
+	has_time_spec::Cuchar;
+	time_spec::Clonglong;
+	time_spec_frac::Cdouble;
+	more_fragments::Cuchar;
+	fragment_offset::Csize_t;
+	start_of_burst::Cuchar;
+	end_of_burst::Cuchar;
+	eov_positions::Ref{Csize_t};
+	eov_positions_size::Csize_t;
+	eov_positions_count::Csize_t;
+	error_code::error_code_t;
+	out_of_sequence::Cuchar;
+end
+# --- Structure with pointer reference
+struct UHDRxWrapper 
+	flag::Bool;
+	pointerUSRP::Ptr{uhd_usrp};
+	pointerStreamer::Ptr{uhd_rx_streamer};
+	pointerMD::Ptr{uhd_rx_metadata};
+	addressStream::Ref{Ptr{uhd_rx_streamer}};
+	addressMD::Ref{Ptr{uhd_rx_metadata}};
+	pointerSamples::Ref{Csize_t}
+end 
+# --- Main Rx structure 
+mutable struct UHDRx 
+	uhd::UHDRxWrapper;
+	carrierFreq::Float64;
+	samplingRate::Float64;
+	gain::Union{Int,Float64}; 
+	antenna::String;
+	packetSize::Csize_t;
+	released::Int;
+end
 
+
+
+# ----------------------------------------------------
+# --- Tx structures 
+# ---------------------------------------------------- 
+# --- C UHD streamer
+mutable struct uhd_tx_streamer
+end
+# --- Metadata structure 
+struct uhd_tx_metadata 
+	has_time_spec::Cuchar;
+	time_spec::Clonglong;
+	time_spec_frac::Cdouble;
+	start_of_burst::Cuchar;
+	end_of_burst::Cuchar;
+	eov_positions::Ref{Csize_t};
+	eov_positions_size::Csize_t;
+end
+
+# --- Structure with pointer reference
+struct UHDTxWrapper 
+	flag::Bool;
+	pointerUSRP::Ptr{uhd_usrp};
+	pointerStreamer::Ptr{uhd_tx_streamer};
+	pointerMD::Ptr{uhd_tx_metadata};
+	addressStream::Ref{Ptr{uhd_tx_streamer}};
+	addressMD::Ref{Ptr{uhd_tx_metadata}};
+end 
+# --- Main Tx structure 
+mutable struct UHDTx 
+	uhd::UHDTxWrapper;
+	carrierFreq::Float64;
+	samplingRate::Float64;
+	gain::Union{Int,Float64}; 
+	antenna::String;
+	packetSize::Csize_t;
+	released::Int;
+end
+
+# ----------------------------------------------------
+# --- UHDBinding structure 
+# ---------------------------------------------------- 
+mutable struct UHDBinding 
+	addressUSRP::Ref{Ptr{uhd_usrp}};
+	rx::UHDRx;
+	tx::UHDTx;
+end
+
+# ----------------------------------------------------
+# --- Print function 
+# ---------------------------------------------------- 
+# To print fancy message with different colors with Tx and Rx
+function customPrint(str,handler;style...)
+    msglines = split(chomp(str), '\n')
+    printstyled("┌",handler,": ";style...)
+    println(msglines[1])
+    for i in 2:length(msglines)
+        (i == length(msglines)) ? symb="└ " : symb = "|";
+        printstyled(symb;style...);
+        println(msglines[i]);
+    end
+end
+# define macro for printing Rx info
+macro inforx(str)
+    quote
+        customPrint($(esc(str)),"Rx";bold=true,color=:light_green)
+    end
+end
+# define macro for printing Rx warning 
+macro warnrx(str)
+    quote
+        customPrint($(esc(str)),"Rx Warning";bold=true,color=:light_yellow)
+    end
+end
+# define macro for printing Tx info
+macro infotx(str)
+    quote
+        customPrint($(esc(str)),"Tx";bold=true,color=:light_blue)
+    end
+end
+# define macro for printing Tx warning 
+macro warntx(str)
+    quote
+        customPrint($(esc(str)),"Tx Warning";bold=true,color=:light_yellow)
+    end
+end

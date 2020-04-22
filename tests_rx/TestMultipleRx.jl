@@ -18,7 +18,8 @@ function main()
 	nbSamples		= 1000;
 
 	# --- Setting a very first configuration 
-	radio = openUHDRx("",carrierFreq,samplingRate,gain); 
+	usrp  = openUHD(carrierFreq,samplingRate,gain); 
+	radio = usrp.rx;
 	print(radio);
 	# --- Get samples 
 	nbSamples = 4096; 
@@ -30,6 +31,7 @@ function main()
 		while(true) && cnt < 1000 
 			# --- Direct call to avoid allocation 
 			recv!(sig,radio);
+			send(usrp.tx,sig);
 			# @timeit to "populate " populateBuffer!(radio);
 			#err = getError(radio);
 			#if err > 0xf 
@@ -45,11 +47,11 @@ function main()
 			#@show getTimestamp(buffer);
 			cnt += 1;
 		end
-		close(radio);
+		close(usrp);
 		return sig;
 	catch exception;
 		# --- Release USRP 
-		close(radio);
+		close(usrp);
 		@show exception;
 		return sig;
 	end

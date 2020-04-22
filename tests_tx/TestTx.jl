@@ -18,18 +18,16 @@ function main()
 	gain			= 50.0; 
 	nbSamples		= 1000;
 	# --- Setting a very first configuration 
-	global radio = openRadioTx(carrierFreq,samplingRate,gain); 
+	global radio = openUHD(carrierFreq,samplingRate,gain); 
 	print(radio);
 	# --- Get samples 
-    buffer	= randn(Complex{Cfloat},radio.packetSize);
-    buffer	= randn(Cfloat,2*radio.packetSize);
+    buffer	= randn(Complex{Cfloat},radio.tx.packetSize);
 
-	nbEch	= send(radio,buffer,true)
-	#for iN = 1 : 1 : 1000
-	#nbEch = sendBuffer(radio,buffer);
-	#@show Int(nbEch);
-	#end
+	# nbEch	= send(radio,buffer,true)
+	for iN = 1 : 1 : 1000
+	nbEch = send(radio,buffer);
 	@show Int(nbEch);
+	end
 	# --- Release USRP 
 	close(radio);
 end

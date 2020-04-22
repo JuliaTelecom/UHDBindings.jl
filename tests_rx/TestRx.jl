@@ -20,7 +20,7 @@ function main()
 	@printf("done -- \n");
 
 	# --- Setting a very first configuration 
-	global radio = openUHDRx(carrierFreq,samplingRate,gain); 
+	global radio = openUHD(carrierFreq,samplingRate,gain); 
 	#print(radio);
 	# --- Get samples 
 	#@show sigAll	= getSingleBuffer(radio);

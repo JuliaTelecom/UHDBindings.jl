@@ -1,58 +1,6 @@
-# --- Working structures 
-mutable struct uhd_tx_streamer
-end
-
-struct uhd_tx_metadata 
-	has_time_spec::Cuchar;
-	time_spec::Clonglong;
-	time_spec_frac::Cdouble;
-	start_of_burst::Cuchar;
-	end_of_burst::Cuchar;
-	eov_positions::Ref{Csize_t};
-	eov_positions_size::Csize_t;
-end
-
-# --- Tx structures 
-mutable struct UHDTxWrapper 
-	flag::Bool;
-	pointerUSRP::Ptr{uhd_usrp};
-	pointerStreamer::Ptr{uhd_tx_streamer};
-	pointerMD::Ptr{uhd_tx_metadata};
-	addressUSRP::Ref{Ptr{uhd_usrp}};
-	addressStream::Ref{Ptr{uhd_tx_streamer}};
-	addressMD::Ref{Ptr{uhd_tx_metadata}};
-end 
-mutable struct UHDTx 
-	uhd::UHDTxWrapper;
-	carrierFreq::Float64;
-	samplingRate::Float64;
-	gain::Union{Int,Float64}; 
-	antenna::String;
-	packetSize::Csize_t;
-	released::Int;
-end
 
 
-""" 
-Initiate all structures to instantiate and pilot a USRP device in Transmitter (Tx) mode.
-
-# --- Syntax 
-
-uhd	  = initTxUHD(sysImage)
-# --- Input parameters 
-- sysImage	  : String with the additionnal load parameters (for instance, path to the FPHGA image) [String]
-# --- Output parameters 
-- uhd		  = UHD Tx object [UHDTxWrapper] 
-"""
-function initTxUHD(sysImage)
-	# ---------------------------------------------------- 
-	# --- Handler  
-	# ---------------------------------------------------- 
-	addressUSRP = Ref{Ptr{uhd_usrp}}();
-	# --- Cal the init
-	@assert_uhd ccall((:uhd_usrp_make, libUHD), uhd_error, (Ptr{Ptr{uhd_usrp}}, Cstring), addressUSRP, sysImage);
-	# --- Get the usable object 
-	usrpPointer = addressUSRP[];
+function initTxUHD(pointerUSRP)
 	# ---------------------------------------------------- 
 	# --- Tx Streamer  
 	# ---------------------------------------------------- 
@@ -73,32 +21,17 @@ function initTxUHD(sysImage)
 	# ---------------------------------------------------- 
 	# --- Create the USRP wrapper object  
 	# ---------------------------------------------------- 
-	uhd  = UHDTxWrapper(true, usrpPointer, streamerPointer, metadataPointer, addressUSRP, addressStream, addressMD);
-	@info("Done init \n");
+	uhd  = UHDTxWrapper(true, pointerUSRP, streamerPointer, metadataPointer, addressStream, addressMD);
+	# @infotx("Done init \n");
 	return uhd;
 end
 
-""" 
-Init the core parameter of the radio in Tx mode and initiate RF parameters 
 
-# --- Syntax 
-
-openUHDTx(carrierFreq,samplingRate,gain,antenna="TX-RX";args="")
-# --- Input parameters 
-- carrierFreq	: Desired Carrier frequency [Union{Int,Float64}] 
-- samplingRate	: Desired bandwidth [Union{Int,Float64}] 
-- gain		: Desired Tx Gain [Union{Int,Float64}] 
-- antenna		: Desired Antenna alias (default "TX-RX") [String] 
-Keywords:
-- args	  : String with the additionnal load parameters (for instance, path to the FPHGA image) [String]
-# --- Output parameters 
-- UHDTx		  	: UHD Tx object with PHY parameters [UHDTx]  
-"""
-function openUHDTx(carrierFreq, samplingRate, gain, antenna = "TX-RX";args="")
+function openUHDTx(pointerUSRP,carrierFreq, samplingRate, gain, antenna = "TX-RX";args="")
 	# ---------------------------------------------------- 
 	# --- Init  UHD object  
 	# ---------------------------------------------------- 
-	uhd	  = initTxUHD(args);
+	uhd	  = initTxUHD(pointerUSRP);
 	# ---------------------------------------------------- 
 	# --- Creating Runtime structures  
 	# ---------------------------------------------------- 
@@ -113,16 +46,16 @@ function openUHDTx(carrierFreq, samplingRate, gain, antenna = "TX-RX";args="")
 	# --- Sampling rate configuration  
 	# ---------------------------------------------------- 
 	# --- Update the Tx sampling rate 
-	ccall((:uhd_usrp_set_tx_rate, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t), uhd.pointerUSRP, samplingRate, 0);
+	ccall((:uhd_usrp_set_tx_rate, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t), pointerUSRP, samplingRate, 0);
 	# --- Get the Tx rate from the radio 
 	pointerRate  = Ref{Cdouble}(0);
-	ccall((:uhd_usrp_get_tx_rate, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}), uhd.pointerUSRP, 0, pointerRate);
+	ccall((:uhd_usrp_get_tx_rate, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}), pointerUSRP, 0, pointerRate);
 	updateRate  = pointerRate[];	
 	# --- Print a flag 
 	if updateRate != samplingRate 
-		@warn "Effective Rate is $(updateRate / 1e6) MHz and not $(samplingRate / 1e6) MHz\n" 
+		@warntx "Effective Rate is $(updateRate / 1e6) MHz and not $(samplingRate / 1e6) MHz\n" 
 	else 
-		@info "Effective Rate is $(updateRate / 1e6) MHz\n";
+		# @infotx "Effective Rate is $(updateRate / 1e6) MHz\n";
 	end
 	# ---------------------------------------------------- 
 	# --- Carrier Frequency configuration  
@@ -131,29 +64,29 @@ function openUHDTx(carrierFreq, samplingRate, gain, antenna = "TX-RX";args="")
 	tuneRequest	   = uhd_tune_request_t(carrierFreq, UHD_TUNE_REQUEST_POLICY_AUTO, UHD_TUNE_REQUEST_POLICY_AUTO);
 	tunePointer	  = Ref{uhd_tune_request_t}(tuneRequest);	
 	pointerTuneResult	  = Ref{uhd_tune_result}();	
-	ccall((:uhd_usrp_set_tx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_tune_request_t}, Csize_t, Ptr{uhd_tune_result}), uhd.pointerUSRP, tunePointer, 0, pointerTuneResult);
+	ccall((:uhd_usrp_set_tx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_tune_request_t}, Csize_t, Ptr{uhd_tune_result}), pointerUSRP, tunePointer, 0, pointerTuneResult);
 	pointerCarrierFreq = Ref{Cdouble}(0);
-	ccall((:uhd_usrp_get_tx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}), uhd.pointerUSRP, 0, pointerCarrierFreq); 
+	ccall((:uhd_usrp_get_tx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}), pointerUSRP, 0, pointerCarrierFreq); 
 	updateCarrierFreq	= pointerCarrierFreq[];
 	if updateCarrierFreq != carrierFreq 
-		@warn "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz and not $(carrierFreq / 1e6) Hz\n" 
+		@warntx "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz and not $(carrierFreq / 1e6) Hz\n" 
 	else 
-		@info "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz\n";
+		# @infotx "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz\n";
 	end	
 	# ---------------------------------------------------- 
 	# --- Gain configuration  
 	# ---------------------------------------------------- 
 	# Update the UHD sampling rate 
-	ccall((:uhd_usrp_set_tx_gain, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t, Cstring), uhd.pointerUSRP, gain, 0, "");
+	ccall((:uhd_usrp_set_tx_gain, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t, Cstring), pointerUSRP, gain, 0, "");
 	# Get the updated gain from UHD 
 	pointerGain	  = Ref{Cdouble}(0);
-	ccall((:uhd_usrp_get_tx_gain, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Cstring, Ref{Cdouble}), uhd.pointerUSRP, 0, "", pointerGain);
+	ccall((:uhd_usrp_get_tx_gain, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Cstring, Ref{Cdouble}), pointerUSRP, 0, "", pointerGain);
 	updateGain	  = pointerGain[]; 
 	# --- Print a flag 
 	if updateGain != gain 
-		@warn "Effective gain is $(updateGain) dB and not $(gain) dB\n" 
+		@warntx "Effective gain is $(updateGain) dB and not $(gain) dB\n" 
 	else 
-		@info "Effective gain is $(updateGain) dB\n";
+		# @infotx "Effective gain is $(updateGain) dB\n";
 	end 
 	# ---------------------------------------------------- 
 	# --- Antenna configuration 
@@ -164,7 +97,7 @@ function openUHDTx(carrierFreq, samplingRate, gain, antenna = "TX-RX";args="")
 	# ---------------------------------------------------- 
 	# --- Setting up arguments 
 	pointerArgs	  = Ref{uhd_stream_args_t}(uhdArgs);
-	ccall((:uhd_usrp_get_tx_stream, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_stream_args_t}, Ptr{uhd_tx_streamer}), uhd.pointerUSRP, pointerArgs, uhd.pointerStreamer);
+	ccall((:uhd_usrp_get_tx_stream, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_stream_args_t}, Ptr{uhd_tx_streamer}), pointerUSRP, pointerArgs, uhd.pointerStreamer);
 	# --- Getting number of samples ber buffer 
 	pointerSamples	  = Ref{Csize_t}(0);
 	ccall((:uhd_tx_streamer_max_num_samps, libUHD), Cvoid, (Ptr{uhd_stream_args_t}, Ref{Csize_t}), uhd.pointerStreamer, pointerSamples);
@@ -178,23 +111,12 @@ end
 
 
 
-""" 
-Update sampling rate of current radio device, and update radio object with the new obtained sampling frequency  
 
-# --- Syntax 
-
-updateSamplingRate!(radio,samplingRate)
-# --- Input parameters 
-- radio	  : UHD device [UHDTx]
-- samplingRate	: New desired sampling rate 
-# --- Output parameters 
-- 
-"""
 function updateSamplingRate!(radio::UHDTx, samplingRate)
 	# ---------------------------------------------------- 
 	# --- Sampling rate configuration  
 	# ---------------------------------------------------- 
-	@info  "Try to change rate from $(radio.samplingRate / 1e6) MHz to $(samplingRate / 1e6) MHz";
+	# @infotx  "Try to change rate from $(radio.samplingRate / 1e6) MHz to $(samplingRate / 1e6) MHz";
 	# --- Update the Tx sampling rate 
 	ccall((:uhd_usrp_set_tx_rate, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t), radio.uhd.pointerUSRP, samplingRate, 0);
 	# --- Get the Tx rate from the radio 
@@ -203,31 +125,20 @@ function updateSamplingRate!(radio::UHDTx, samplingRate)
 	updateRate  = pointerRate[];	
 	# --- Print a flag 
 	if updateRate != samplingRate 
-		@warn "Effective Rate is $(updateRate / 1e6) MHz and not $(samplingRate / 1e6) MHz\n" 
+		@warntx "Effective Rate is $(updateRate / 1e6) MHz and not $(samplingRate / 1e6) MHz\n" 
 	else 
-		@info "Effective Rate is $(updateRate / 1e6) MHz\n";
+		# @infotx "Effective Rate is $(updateRate / 1e6) MHz\n";
 	end
 	radio.samplingRate = updateRate;
 end
 
 
-""" 
-Update gain of current radio device, and update radio object with the new obtained  gain
 
-# --- Syntax 
-
-updateGain!(radio,gain)
-# --- Input parameters 
-- radio	  : UHD device [UHDTx]
-- gain	: New desired gain 
-# --- Output parameters 
-- updateGain : Current Radio gain [Float64]
-"""
 function updateGain!(radio::UHDTx, gain)
 	# ---------------------------------------------------- 
 	# --- Sampling rate configuration  
 	# ---------------------------------------------------- 
-	@info  "Try to change gain from $(radio.gain) dB to $(gain) dB";
+	# @infotx  "Try to change gain from $(radio.gain) dB to $(gain) dB";
 	# Update the UHD sampling rate 
 	ccall((:uhd_usrp_set_tx_gain, libUHD), Cvoid, (Ptr{uhd_usrp}, Cdouble, Csize_t, Cstring), radio.uhd.pointerUSRP, gain, 0, "");
 	# Get the updated gain from UHD 
@@ -236,33 +147,20 @@ function updateGain!(radio::UHDTx, gain)
 	updateGain	  = pointerGain[]; 
 	# --- Print a flag 
 	if updateGain != gain 
-		@warn "Effective gain is $(updateGain) dB and not $(gain) dB\n" 
+		@warntx "Effective gain is $(updateGain) dB and not $(gain) dB\n" 
 	else 
-		@info "Effective gain is $(updateGain) dB\n";
+		# @infotx "Effective gain is $(updateGain) dB\n";
 	end 
 	radio.gain = updateGain;
 	return updateGain;
 end
 
-""" 
-Update carrier frequency of current radio device, and update radio object with the new obtained carrier frequency 
 
-# --- Syntax 
-
-updateCarrierFreq!(radio,carrierFreq)
-# --- Input parameters 
-- radio	  : UHD device [UHDRx]
-- carrierFreq	: New desired carrier freq 
-# --- Output parameters 
-- carrierFreq 	: Current radio carrier frequency 
-# --- 
-# v 1.0
-"""
 function updateCarrierFreq!(radio::UHDTx, carrierFreq)
 	# ---------------------------------------------------- 
 	# --- Carrier Frequency configuration  
 	# ---------------------------------------------------- 
-	@info  "Try to change carrier frequency from $(radio.carrierFreq / 1e6) MHz to $(carrierFreq / 1e6) MHz";
+	# @infotx  "Try to change carrier frequency from $(radio.carrierFreq / 1e6) MHz to $(carrierFreq / 1e6) MHz";
 	tuneRequest   = uhd_tune_request_t(carrierFreq, UHD_TUNE_REQUEST_POLICY_AUTO, UHD_TUNE_REQUEST_POLICY_AUTO);
 	tunePointer	  = Ref{uhd_tune_request_t}(tuneRequest);	
 	pointerTuneResult	  = Ref{uhd_tune_result}();	
@@ -271,9 +169,9 @@ function updateCarrierFreq!(radio::UHDTx, carrierFreq)
 	ccall((:uhd_usrp_get_tx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}), radio.uhd.pointerUSRP, 0, pointerCarrierFreq); 
 	updateCarrierFreq	= pointerCarrierFreq[];
 	if updateCarrierFreq != carrierFreq 
-		@warn "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz and not $(carrierFreq / 1e6) MHz\n" 
+		@warntx "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz and not $(carrierFreq / 1e6) MHz\n" 
 	else 
-		@info "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz\n";
+		# @infotx "Effective carrier frequency is $(updateCarrierFreq / 1e6) MHz\n";
 	end	
 	radio.carrierFreq = updateCarrierFreq;
 	return updateCarrierFreq;
@@ -291,8 +189,6 @@ send(radio,buffer,cyclic=false)
 - cyclic 	: Send same buffer multiple times (default false) [Bool]
 # --- Output parameters 
 - nbEch 	: Number of samples effectively send [Csize_t]. It corresponds to the number of complex samples sent.
-# --- 
-# v 1.0
 """
 function send(radio::UHDTx, buffer::Union{Array{Complex{Cfloat}},Array{Cfloat}}, cyclic::Bool = false)
 	# --- Global pointer 
@@ -318,10 +214,44 @@ function send(radio::UHDTx, buffer::Union{Array{Complex{Cfloat}},Array{Cfloat}},
 		# --- Interruption handling
 		print(e);
 		print("\n");
-		@info "Interruption detected";
+		@infotx "Interruption detected";
 	end
 	# --- Return number of complex samples transmitted
 	# We accumulate number of samples transmitted, we should divide by 2 to get number of Complex samples
 	return (nbEch ÷ 2);
+end
+
+
+function Base.close(radio::UHDTx)
+	# --- Checking realease nature 
+	# There is one flag to avoid double free (that leads to seg fault) 
+	if radio.released == 0
+		# C Wrapper to ressource release 
+		@assert_uhd ccall((:uhd_tx_streamer_free, libUHD), uhd_error, (Ptr{Ptr{uhd_tx_streamer}},), radio.uhd.addressStream);
+		@assert_uhd ccall((:uhd_tx_metadata_free, libUHD), uhd_error, (Ptr{Ptr{uhd_tx_metadata}},), radio.uhd.addressMD);
+	else 
+		# print a warning  
+		@warn "UHD ressource was already released, abort call";
+	end 
+	# --- Force flag value 
+	radio.released = 1;
+end
+
+function Base.print(radio::UHDTx)
+	# Get the gain from UHD 
+	pointerGain	  = Ref{Cdouble}(0);
+	ccall((:uhd_usrp_get_tx_gain, libUHD), Cvoid, (Ptr{Cvoid}, Csize_t, Cstring, Ref{Cdouble}), radio.uhd.pointerUSRP, 0, "", pointerGain);
+	updateGain	  = pointerGain[]; 
+	# Get the rate from UHD 
+	pointerRate	  = Ref{Cdouble}(0);
+	ccall((:uhd_usrp_get_tx_rate, libUHD), Cvoid, (Ptr{Cvoid}, Csize_t, Ref{Cdouble}), radio.uhd.pointerUSRP, 0, pointerRate);
+	updateRate	  = pointerRate[]; 
+	# Get the freq from UHD 
+	pointerFreq	  = Ref{Cdouble}(0);
+	ccall((:uhd_usrp_get_tx_freq, libUHD), Cvoid, (Ptr{Cvoid}, Csize_t, Ref{Cdouble}), radio.uhd.pointerUSRP, 0, pointerFreq);
+	updateFreq	  = pointerFreq[];
+	# Print message 
+	strF  = @sprintf(" Carrier Frequency: %2.3f MHz\n Sampling Frequency: %2.3f MHz\n Tx Gain: %2.2f dB\n",updateFreq / 1e6,updateRate / 1e6,updateGain);
+	@infotx "Current UHD Configuration in Tx mode\n$strF"; 
 end
 

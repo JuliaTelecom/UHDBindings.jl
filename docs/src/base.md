@@ -1,10 +1,10 @@
 
 
-# Common functions 
+# Common functions and Configurations 
 
 ```@autodocs
-Modules = [UHD]
-Pages   = ["UHD.jl"]
+Modules = [UHDBindings]
+Pages   = ["UHDBindings.jl"]
 Order   = [:function, :type]
 Depth	= 1
 ```
@@ -13,7 +13,7 @@ Depth	= 1
 # Receiver functions 
 
 ```@autodocs
-Modules = [UHD]
+Modules = [UHDBindings]
 Pages   = ["Rx.jl"]
 Order   = [:function, :type]
 Depth	= 1
@@ -23,7 +23,7 @@ Depth	= 1
 # Transmitter functions 
 
 ```@autodocs
-Modules = [UHD]
+Modules = [UHDBindings]
 Pages   = ["Tx.jl"]
 Order   = [:function, :type]
 Depth	= 1
