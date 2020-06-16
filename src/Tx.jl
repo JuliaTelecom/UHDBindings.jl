@@ -208,7 +208,7 @@ function send(radio::UHDTx, buffer::Union{Array{Complex{Cfloat}},Array{Cfloat}},
 			# --- Detection of cyclic mode 
 			(cyclic == false) && break 
 			# --- Forcing refresh
-			yield();
+			# yield();
 		end 
 	catch e;
 		# --- Interruption handling
