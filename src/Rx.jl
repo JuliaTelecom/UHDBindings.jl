@@ -61,10 +61,12 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain,antenna="RX2";args=
 	# --- Carrier Frequency configuration  
 	# ---------------------------------------------------- 
 	# --- Create structure for request 
-	tuneRequest	   = uhd_tune_request_t(carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,UHD_TUNE_REQUEST_POLICY_AUTO);
+	a5			   =  Base.unsafe_convert(Cstring,"");
+	tuneRequest	   = uhd_tune_request_t(carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,200e6,a5);
 	tunePointer	  = Ref{uhd_tune_request_t}(tuneRequest);	
 	pointerTuneResult	  = Ref{uhd_tune_result}();	
 	ccall((:uhd_usrp_set_rx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_tune_request_t}, Csize_t, Ptr{uhd_tune_result}),pointerUSRP,tunePointer,0,pointerTuneResult);
+	println("We are here")
 	pointerCarrierFreq = Ref{Cdouble}(0);
 	ccall((:uhd_usrp_get_rx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}),pointerUSRP,0,pointerCarrierFreq); 
 	updateCarrierFreq	= pointerCarrierFreq[];
@@ -165,7 +167,9 @@ function updateCarrierFreq!(radio::UHDRx,carrierFreq)
 	# --- Carrier Frequency configuration  
 	# ---------------------------------------------------- 
 	# @inforx  "Try to change carrier frequency from $(radio.carrierFreq/1e6) MHz to $(carrierFreq/1e6) MHz";
-	tuneRequest   = uhd_tune_request_t(carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,UHD_TUNE_REQUEST_POLICY_AUTO);
+	a5			   =  Base.unsafe_convert(Cstring,"");
+	tuneRequest	   = uhd_tune_request_t(carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,200e6,a5)
+	# tuneRequest   = uhd_tune_request_t(carrierFreq,UHD_TUNE_REQUEST_POLICY_AUTO,UHD_TUNE_REQUEST_POLICY_AUTO);
 	tunePointer	  = Ref{uhd_tune_request_t}(tuneRequest);	
 	pointerTuneResult	  = Ref{uhd_tune_result}();	
 	ccall((:uhd_usrp_set_rx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_tune_request_t}, Csize_t, Ptr{uhd_tune_result}),radio.uhd.pointerUSRP,tunePointer,0,pointerTuneResult);

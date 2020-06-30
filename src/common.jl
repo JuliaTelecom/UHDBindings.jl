@@ -62,7 +62,10 @@ end
 struct uhd_tune_request_t 
 	target_freq::Cdouble;
 	rf_freq_policy::uhd_tune_request_policy_t;
+	rf_freq::Cdouble;
 	dsp_freq_policy::uhd_tune_request_policy_t;
+	dsp_freq::Cdouble;
+	args::Cstring;
 end
 struct uhd_tune_result 
 	clipped_rf_freq::Cdouble;
