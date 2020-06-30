@@ -1,7 +1,7 @@
 name = "UHDBindings"
 uuid = "4d90b16f-829e-4b78-80d9-fb9bcf8c06e0"
 authors = ["Robin Gerzaguet <robin.gerzaguet@irisa.fr>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
