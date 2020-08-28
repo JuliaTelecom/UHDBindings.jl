@@ -195,24 +195,43 @@ send(radio,buffer,cyclic=false)
 - nbEch 	: Number of samples effectively send [Csize_t]. It corresponds to the number of complex samples sent.
 """
 function send(radio::UHDTx, buffer::Union{Array{Complex{Cfloat}},Array{Cfloat}}, cyclic::Bool = false)
-	# --- Global pointer 
-	ptr				= Ref(Ptr{Cvoid}(pointer(buffer)));
 	# --- Pointer to number of samples transmitted 
 	pointerSamples 	= Ref{Csize_t}(0);
 	# --- Size of buffer 
-	sL 				= Csize_t(sizeof(buffer) ÷ sizeof(Cfloat));
+	# We should handle Complex and non complex inputs 
+	# If Complex, we have length(buffer) elements. If input is not complex, half element are effectively transmitted (real, imag, real, imag...) and we have length(buffer)÷2.
+	# This can done in one instruction with sizeof(Cfloat) and sizeof(buffer)
+	nbSamples 				= sizeof(buffer) ÷ sizeof(Cfloat) ÷ 2;
+	# --- Fragmentation handling
+	posT 	= Csize_t(0);
+	filled 	= false;
 	# --- Accumulated value of number of samples transmitted
 	nbEch 			= Csize_t(0);
 	try 
-		while true
+		# --- First while loop is to handle cyclic transmission 
+		# It turns to false in case of interruption or cyclic to false 
+		while (true)
+			# --- Getting pointer position
+			(posT+radio.packetSize> nbSamples) ? n = nbSamples - posT : n = radio.packetSize;
+			# --- Create pointer pointing to the fragment
+			ptr=Ref(Ptr{Cvoid}(pointer(buffer,1+posT)));
 			# --- Effectively transmit data
-			ccall((:uhd_tx_streamer_send, libUHD), uhd_error, (Ptr{uhd_tx_streamer}, Ptr{Ptr{Cvoid}}, Csize_t, Ptr{Ptr{uhd_tx_metadata}}, Cfloat, Ref{Csize_t}), radio.uhd.pointerStreamer, ptr, sL, radio.uhd.addressMD, 0.1, pointerSamples);
+			ccall((:uhd_tx_streamer_send, libUHD), uhd_error, (Ptr{uhd_tx_streamer}, Ptr{Ptr{Cvoid}}, Csize_t, Ptr{Ptr{uhd_tx_metadata}}, Cfloat, Ref{Csize_t}), radio.uhd.pointerStreamer, ptr, n, radio.uhd.addressMD, 0.1, pointerSamples);
 			# --- Getting number of transmitted samples
 			nbEch 		+= pointerSamples[];
+			posT 		+= pointerSamples[];
+			(posT == nbSamples) ? filled = true : filled = false;
 			# --- Detection of cyclic mode 
-			(cyclic == false) && break 
+			(cyclic == false && filled == true) && break 
+			# --- We are in cyclic mode here 
+			if filled == true 
+				# --- We are not out and filled is true => cyclic is true and we have done one complete Tx buffer transmit. We shall reinit all the counters here 
+				posT 	= 0;
+				# --- Filled to false 
+				filled = false;
+			end
 			# --- Forcing refresh
-			# yield();
+			yield();
 		end 
 	catch e;
 		# --- Interruption handling
