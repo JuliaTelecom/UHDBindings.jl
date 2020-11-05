@@ -35,6 +35,9 @@ end
 include("common.jl");
 export Timestamp
 export UHDBinding
+# Exporting printing macros 
+export @infotx, @warntx;
+export @inforx, @warnrx;
 
 # ---------------------------------------------------- 
 # --- Receiver Configuration 
