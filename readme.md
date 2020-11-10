@@ -29,12 +29,15 @@ For instance, in order to get 4096 samples at 868MHz with a instantaneous bandwi
 		# --- Getting all system with function calls  
 		# ---------------------------------------------------- 
 		# --- Creating the radio ressource 
-		# The first parameter is to tune the Rx board
-		radio	= openUHD("Rx",carrierFreq,samplingRate,rxGain);
+		radio	= openUHD(carrierFreq,samplingRate,rxGain);
 		# --- Display the current radio configuration
+		# Both Tx and Rx sides.
 		print(radio);
 		# --- Getting a buffer from the radio 
 		sig	= recv(radio,nbSamples);
+		# This also can be done with pre-allocation 
+		buffer = zeros(Complex{Cfloat},nbSamples);
+		recv!(buffer,radio);
 		# --- Release the radio ressources
 		close(radio); 
 		# --- Output to signal 
