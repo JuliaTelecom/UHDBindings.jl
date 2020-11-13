@@ -62,4 +62,4 @@ julia> import Pkg; Pkg.add("UHDBindings")
 
 ## Documentation
 
-- [**STABLE**](https://rgerzaguet.github.io/UHDBindings.jl/dev/index.html) &mdash; **documentation of the most recently tagged version.**
+- [**STABLE**](https://juliatelecom.github.io/UHDBindings.jl/dev/index.html) &mdash; **documentation of the most recently tagged version.**
