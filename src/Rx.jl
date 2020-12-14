@@ -66,7 +66,6 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain,antenna="RX2";args=
 	tunePointer	  = Ref{uhd_tune_request_t}(tuneRequest);	
 	pointerTuneResult	  = Ref{uhd_tune_result}();	
 	ccall((:uhd_usrp_set_rx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Ptr{uhd_tune_request_t}, Csize_t, Ptr{uhd_tune_result}),pointerUSRP,tunePointer,0,pointerTuneResult);
-	println("We are here")
 	pointerCarrierFreq = Ref{Cdouble}(0);
 	ccall((:uhd_usrp_get_rx_freq, libUHD), Cvoid, (Ptr{uhd_usrp}, Csize_t, Ref{Cdouble}),pointerUSRP,0,pointerCarrierFreq); 
 	updateCarrierFreq	= pointerCarrierFreq[];
