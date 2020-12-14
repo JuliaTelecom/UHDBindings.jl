@@ -17,5 +17,5 @@ makedocs(sitename="UHDBindings.jl",
 #makedocs(sitename="My Documentation", format = Documenter.HTML(prettyurls = false))
 
 deploydocs(
-    repo = "github.com/RGerzaguet/UHDBindings.jl",
+    repo = "github.com/JuliaTelecom/UHDBindings.jl",
 )
