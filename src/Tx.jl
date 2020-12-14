@@ -238,12 +238,12 @@ function send(radio::UHDTx, buffer::Union{Array{Complex{Cfloat}},Array{Cfloat}},
 		print(e);
 		print("\n");
 		@infotx "Interruption detected";
+        return Csize_t(0);
 	end
 	# --- Return number of complex samples transmitted
 	# We accumulate number of samples transmitted, we should divide by 2 to get number of Complex samples
 	return (nbEch ÷ 2);
 end
-
 
 function Base.close(radio::UHDTx)
 	# --- Checking realease nature 
