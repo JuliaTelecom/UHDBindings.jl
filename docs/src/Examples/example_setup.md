@@ -16,11 +16,11 @@ In order to get 4096 samples at 868MHz with a instantaneous bandwidth of 16MHz, 
 		# ---------------------------------------------------- 
 		# --- Creating the radio resource 
 		# The first parameter is for specific parameter (FPGA bitstream, IP address)
-		radio	= openUHD("Rx",carrierFreq,samplingRate,rxGain);
+		radio	= openUHD(carrierFreq,samplingRate,rxGain);
 		# --- Display the current radio configuration
 		print(radio);
 		# --- Getting a buffer from the radio 
-		sigAll	= getBuffer(radio,nbSamples);
+		sigAll	= recv(radio,nbSamples);
 		# --- Release the radio resources
 		close(radio); 
 	end
