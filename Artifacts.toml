@@ -1,0 +1,21 @@
+[[libUHD]]
+arch = "x86_64"
+git-tree-sha1 = "2947ee61a72e51f3bb7e7247d0460472fedf2eaa"
+os = "macos"
+
+    [[libUHD.download]]
+    url = "https://github.com/JuliaTelecom/Artifact_libUHD/releases/download/v0.1/libUHD_MacOS.tar.gz" 
+    sha256 = "12fb524edeb043c7abcc856a4b43045a58bc04bb45ccc0585adf7d2a28872f3e"
+
+
+[[libUHD]]
+arch = "x86_64"
+git-tree-sha1 = "95ad926e1c215f57d98d15df1c28ddf72873a990"
+os = "linux"
+
+    [[libUHD.download]]
+    url = "https://github.com/JuliaTelecom/Artifact_libUHD/releases/download/v0.1/libUHD_Linux.tar.gz" 
+    sha256 = "c312a32adfe65e9383cacd19c192884f43d5f2d85a9191bfe937178559f29eb6"
+
+
+
