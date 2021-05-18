@@ -16,6 +16,7 @@ const ARCHI = Sys.CPU_NAME == "cortex-a9" ? "arm" : "pc";
 	else 
 		const FORMAT_LONG = Clonglong;
 	end
+
 # ----------------------------------------------------
 # --- Artifact for LibUHD 
 # ---------------------------------------------------- 
@@ -34,6 +35,13 @@ export UHDBinding
 # Exporting printing macros 
 export @infotx, @warntx;
 export @inforx, @warnrx;
+
+
+# ----------------------------------------------------
+# --- Finding devices 
+# ---------------------------------------------------- 
+include("Find.jl")
+export uhd_find_devices
 
 # ---------------------------------------------------- 
 # --- Receiver Configuration 
@@ -59,9 +67,7 @@ export UHDTx
 export send;
 """ 
 Init the core parameter of the radio in Tx or in Rx mode and initiate RF parameters 
-
 # --- Syntax 
-
 openUHD(mode,sysImage,carrierFreq,samplingRate,txGain,antenna="RX2")
 # --- Input parameters 
 - mode 			: String to open radio in "Tx" (transmitter) or in "Rx" (receive) mode
