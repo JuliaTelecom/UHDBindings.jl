@@ -218,24 +218,23 @@ end
 # ----------------------------------------------------
 # --- Test calls
 # ---------------------------------------------------- 
-# @testset "Scanning and opening" begin 
-    # check_scan()
-    # check_open()
-# end 
+@testset "Scanning and opening" begin 
+    check_scan()
+    check_open()
+end 
 
-# @testset "Radio configuration" begin 
-    # check_carrierFreq()
-    # check_samplingRate()
-    # check_gain()
-# end 
+@testset "Radio configuration" begin 
+    check_carrierFreq()
+    check_samplingRate()
+    check_gain()
+end 
 
-# @testset "Checking data retrieval"  begin 
-    # check_recv()
-    # check_recv_preAlloc()
-    # check_recv_iterative()
-# end
-#
-#
+@testset "Checking data retrieval"  begin 
+    check_recv()
+    check_recv_preAlloc()
+    check_recv_iterative()
+end
+
 @testset "Checking data transmission"  begin 
     check_send()
 end
