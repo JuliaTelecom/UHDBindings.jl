@@ -11,11 +11,11 @@ using Printf
 # a special case if we use software on ARM device 
 # FIXME => Look for direct appropriate format on the e310
 const ARCHI = Sys.CPU_NAME == "cortex-a9" ? "arm" : "pc";
-	if ARCHI == "arm"
-		const FORMAT_LONG = Int32;
-	else 
-		const FORMAT_LONG = Clonglong;
-	end
+if ARCHI == "arm"
+    const FORMAT_LONG = Int32;
+else 
+    const FORMAT_LONG = Clonglong;
+end
 
 # ----------------------------------------------------
 # --- Artifact for LibUHD 
@@ -54,6 +54,7 @@ export UHDRx
 export recv,recv!;
 export populateBuffer!
 export getError, getTimestamp
+export restartStreamer
 
 
 # ---------------------------------------------------- 
@@ -209,7 +210,6 @@ recv(radio::UHDBinding,nbSamples)  = recv(radio.rx,nbSamples);
 recv!(sig,radio::UHDBinding;kwargs...) = recv!(sig,radio.rx;kwargs...);
 # Send 
 send(radio::UHDBinding,params...) = send(radio.tx,params...);
-
 
 
 # ---------------------------------------------------- 
