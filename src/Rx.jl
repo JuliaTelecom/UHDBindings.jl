@@ -24,7 +24,6 @@ function initRxUHD(pointerUSRP)
 	# --- Create the USRP wrapper object  
 	# ---------------------------------------------------- 
 	uhd  = UHDRxWrapper(true,pointerUSRP,streamerPointer,metadataPointer,addressStream,addressMD,pointerSamples);
-	# @inforx("Done init \n");
 	return uhd;
 end
 
@@ -104,18 +103,35 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain,antenna="RX2";args=
 	ccall((:uhd_rx_streamer_max_num_samps, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ref{Csize_t}),uhd.pointerStreamer,pointerSamples);
 	nbSamples		  = pointerSamples[];	
 	# --- Create streamer master 
-	#streamCmd	= stream_cmd(UHD_STREAM_MODE_NUM_SAMPS_AND_DONE,nbSamples,true,0,0.0);
-	streamCmd	= stream_cmd(UHD_STREAM_MODE_START_CONTINUOUS,nbSamples,true,2,0.0);
-	pointerCmd	= Ref{stream_cmd}(streamCmd);
-	ccall((:uhd_rx_streamer_issue_stream_cmd, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ptr{stream_cmd}),uhd.pointerStreamer,pointerCmd);
+    # streamCmd	= stream_cmd(UHD_STREAM_MODE_NUM_SAMPS_AND_DONE,nbSamples,true,0,0.0);
+    # streamCmd	= stream_cmd(UHD_STREAM_MODE_START_CONTINUOUS,nbSamples,true,0,0.0);
+	# pointerCmd	= Ref{stream_cmd}(streamCmd);
+	# ccall((:uhd_rx_streamer_issue_stream_cmd, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ptr{stream_cmd}),uhd.pointerStreamer,pointerCmd);
 	# ---------------------------------------------------- 
 	# --- Create object and return  
 	# ---------------------------------------------------- 
 	# --- Create the main Rx Object 
 	rx = UHDRx(uhd,updateCarrierFreq,updateRate,updateGain,antenna,nbSamples,0);
+    # ----------------------------------------------------
+    # --- Start streamer 
+    # ---------------------------------------------------- 
+    restartStreamer(rx)
+    return rx
 end
 
 
+""" 
+Restart the USRP streamer. In some cases (especially macOS) we have an issue with streamer congestion and we need to restart it. 
+By now, we have added the restart function in recv! method.
+"""
+@inline function restartStreamer(radio::UHDRx)
+    # ----------------------------------------------------
+    # --- Start the streamer 
+    # ---------------------------------------------------- 
+    streamCmd	= stream_cmd(UHD_STREAM_MODE_START_CONTINUOUS,radio.packetSize,true,0,0.0);
+    pointerCmd	= Ref{stream_cmd}(streamCmd);
+    ccall((:uhd_rx_streamer_issue_stream_cmd, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ptr{stream_cmd}),radio.uhd.pointerStreamer,pointerCmd);
+end
 
 function updateSamplingRate!(radio::UHDRx,samplingRate)
 	# ---------------------------------------------------- 
@@ -221,6 +237,7 @@ recv!(sig,radio,nbSamples)
 -
 """
 function recv!(sig,radio::UHDRx;nbSamples=0,offset=0)
+    restartStreamer(radio)
 	# --- Defined parameters for multiple buffer reception 
 	filled		= false;
 	# --- Fill the input buffer @ a specific offset 

@@ -5,6 +5,8 @@
 
 This simple package proposes some bindings to the UHD, the C driver of the Universal Software Radio Peripheral [USRP](https://files.ettus.com/manual/) 
 
+The package is heavily dependent on libUHD the open source driver from Ettus research. The library is shipped in the package through Artifacts, and the current implementation uses libUHD.4.0.0
+
 The purpose is to able to instantiate the radio peripheral inside a Julia session and to be able to send and receive complex samples directly within a Julia session. 
 
 The package introduces the `UHDBinding` structure which pilots and controls the radio. This structure has two important fields namely `tx` and `rx` that are respectively related to transmitter and receiver stages.

@@ -4,29 +4,26 @@ using Libdl
 using Printf
 
 # ---------------------------------------------------- 
-# --- Library managment  
+# --- Architecture management 
 # ---------------------------------------------------- 
-# As we shall be able to use the same module on a host PC (like Unix and MacOs, maybe windows ?) but also on ARM devices (targetting USRP E310) 
-# We have to separate the fact that we want to use the RFNoC version, installed on the sysroot 
-# For MACOS, some issue when UHD is installed from macports (not defined in PATH for compat reasons)
-# TODO This is quite a hacky way to do this, a cleaner way to do this ?? 
+# We need to have a full word definition for time stamp format which is on 64 bits for 64 bits sytem and 32 bits for 32 bits system.
+# For an unknown (at this stage) reason Clonglong is mapped to 64 bits even on ARM device so state a
+# a special case if we use software on ARM device 
+# FIXME => Look for direct appropriate format on the e310
 const ARCHI = Sys.CPU_NAME == "cortex-a9" ? "arm" : "pc";
-if Sys.isapple() 
-	# --- For apple archi, UHD is installed with macports 
-	const libUHD	= "/opt/local/lib/libuhd.dylib"; 
-	const FORMAT_LONG = Clonglong;
+if ARCHI == "arm"
+    const FORMAT_LONG = Int32;
 else 
-	# Default UHD library to be used 
-	if ARCHI == "arm"
-		const libUHD = "libuhd";
-		# For E310 device, TimeStamp is a Int32 and Clonglong is mapped as a 64 bit word.
-		const FORMAT_LONG = Int32;
-	else 
-		const libUHD = "libuhd"
-		#const libUHD = "/usr/lib/x86_64-linux-gnu/libuhd.so.3.14.1";
-		const FORMAT_LONG = Clonglong;
-	end
+    const FORMAT_LONG = Clonglong;
 end
+
+# ----------------------------------------------------
+# --- Artifact for LibUHD 
+# ---------------------------------------------------- 
+# init globals and lib path
+using Pkg.Artifacts;
+const libUHD_rootpath = artifact"libUHD";
+const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
 
 # ---------------------------------------------------- 
 # --- Common configuration and structures 
@@ -39,6 +36,13 @@ export UHDBinding
 export @infotx, @warntx;
 export @inforx, @warnrx;
 
+
+# ----------------------------------------------------
+# --- Finding devices 
+# ---------------------------------------------------- 
+include("Find.jl")
+export uhd_find_devices
+
 # ---------------------------------------------------- 
 # --- Receiver Configuration 
 # ---------------------------------------------------- 
@@ -50,6 +54,7 @@ export UHDRx
 export recv,recv!;
 export populateBuffer!
 export getError, getTimestamp
+export restartStreamer
 
 
 # ---------------------------------------------------- 
@@ -63,9 +68,7 @@ export UHDTx
 export send;
 """ 
 Init the core parameter of the radio in Tx or in Rx mode and initiate RF parameters 
-
 # --- Syntax 
-
 openUHD(mode,sysImage,carrierFreq,samplingRate,txGain,antenna="RX2")
 # --- Input parameters 
 - mode 			: String to open radio in "Tx" (transmitter) or in "Rx" (receive) mode
@@ -207,7 +210,6 @@ recv(radio::UHDBinding,nbSamples)  = recv(radio.rx,nbSamples);
 recv!(sig,radio::UHDBinding;kwargs...) = recv!(sig,radio.rx;kwargs...);
 # Send 
 send(radio::UHDBinding,params...) = send(radio.tx,params...);
-
 
 
 # ---------------------------------------------------- 

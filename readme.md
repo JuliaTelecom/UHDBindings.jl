@@ -11,7 +11,9 @@
 
 This package proposes some bindings to UHD, the C driver of the Universal Software Radio Peripheral [USRP](https://files.ettus.com/manual/) 
 
-The purpose is to able to instantiate the radio peripheral inside a Julia session and to be able to send and receive complex samples direclty within a Julia session. 
+The package is heavily dependent on libUHD the open source driver from Ettus research. The library is shipped in the package through Artifacts, and the current implementation uses libUHD.4.0.0
+
+The purpose is to able to instantiate the radio peripheral inside a Julia session and to be able to send and receive complex samples directly within a Julia session. 
 
 For instance, in order to get 4096 samples at 868MHz with a instantaneous bandwidth of 16MHz, with a 30dB Rx Gain, the following Julia code will do the trick and returns a vector with type Complex{Cfloat} with 4096 samples.
 
