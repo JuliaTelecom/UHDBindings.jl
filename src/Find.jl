@@ -41,6 +41,10 @@ function uhd_find_devices(stringArgs)
     return allStr
 end
 
+# In case of no input parameters, equivalent to call with "" 
+uhd_find_devices() = uhd_find_devices("")
+
+
 """ 
 Create a string handler usefull to get/take messages from the USRP 
 """ 

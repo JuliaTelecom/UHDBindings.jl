@@ -2,7 +2,7 @@ using Test
 using UHDBindings
 
 # --- USRP address 
-const USRP_ADDRESS = "192.168.10.16"
+global USRP_ADDRESS = "192.168.10.16"
 # This address may vary from time to time, not really sure how to handle dynamic testing 
 
 
@@ -14,6 +14,15 @@ const USRP_ADDRESS = "192.168.10.16"
 Scan with uhd_find_devices and return the USRP identifier 
 """
 function check_scan()
+    # --- First we use no parameter (broadcast ethernet link) 
+    str = uhd_find_devices()
+    if length(str) == 0
+        println("No UHD device found. Be sure that a USRP is connected to your PC, and that the ethernet link is up. We try to use the direct IP address now (which is $USRP_ADDRESS). You can change its value depending on your ethernet setup")
+    else 
+        # We find a device so we update the USRP address based on what we have found 
+        global USRP_ADDRESS = str[1][findfirst("_addr=",str[1])[end] .+ (1:13)]
+    end 
+    # The direct call with the IP address should give something         
     str = uhd_find_devices("addr=$USRP_ADDRESS")
     @test length(str) > 0 
 end
