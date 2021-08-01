@@ -23,12 +23,12 @@ end
 # init globals and lib path
 # Prefer system libraries over artifacts
 using Pkg.Artifacts;
-const LibUHD_system_h = dlopen("libuhd", false);
-if isnothing(LibUHD_system_h)
+const libUHD_system_h = dlopen("libuhd", false);
+if isnothing(libUHD_system_h)
 	const libUHD_rootpath = artifact"libUHD";
 	const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
 else
-	const libUHD = dlpath(LibUHD_system_h)
+	const libUHD = dlpath(libUHD_system_h)
 end
 
 # ---------------------------------------------------- 
