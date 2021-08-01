@@ -28,7 +28,7 @@ if isnothing(LibUHD_system_h)
 	const libUHD_rootpath = artifact"libUHD";
 	const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
 else
-	const libUHD = dlpath(LibUHD_local_h)
+	const libUHD = dlpath(LibUHD_system_h)
 end
 
 # ---------------------------------------------------- 
