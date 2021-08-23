@@ -21,9 +21,15 @@ end
 # --- Artifact for LibUHD 
 # ---------------------------------------------------- 
 # init globals and lib path
+# Prefer system libraries over artifacts
 using Pkg.Artifacts;
-const libUHD_rootpath = artifact"libUHD";
-const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
+libUHD_system_h = dlopen("libuhd", false;throw_error=false);
+if isnothing(libUHD_system_h)
+	const libUHD_rootpath = artifact"libUHD";
+	const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
+else
+	const libUHD = dlpath(libUHD_system_h)
+end
 
 # ---------------------------------------------------- 
 # --- Common configuration and structures 
