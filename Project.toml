@@ -4,10 +4,16 @@ authors = ["Robin Gerzaguet <robin.gerzaguet@irisa.fr>"]
 version = "0.2.1"
 
 [deps]
-Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+USRPHardwareDriver_jll = "e339f254-40e1-517e-839f-dc67f1dbd84e"
 
 [compat]
 julia = "1"
+USRPHardwareDriver_jll = "4"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+
+[targets]
+test = ["Test", "Pkg"]

@@ -1,7 +1,7 @@
 module UHDBindings
 
-using Libdl 
 using Printf
+using USRPHardwareDriver_jll
 
 # ---------------------------------------------------- 
 # --- Architecture management 
@@ -17,19 +17,7 @@ else
     const FORMAT_LONG = Clonglong;
 end
 
-# ----------------------------------------------------
-# --- Artifact for LibUHD 
-# ---------------------------------------------------- 
-# init globals and lib path
-# Prefer system libraries over artifacts
-using Pkg.Artifacts;
-libUHD_system_h = dlopen("libuhd", false;throw_error=false);
-if isnothing(libUHD_system_h)
-	const libUHD_rootpath = artifact"libUHD";
-	const libUHD = joinpath(libUHD_rootpath, "libuhd.so");
-else
-	const libUHD = dlpath(libUHD_system_h)
-end
+const libUHD = USRPHardwareDriver_jll.libuhd
 
 # ---------------------------------------------------- 
 # --- Common configuration and structures 

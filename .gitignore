@@ -4,3 +4,5 @@
 *.aux
 *.log
 docs/build/*
+Manifest.toml
+Artifacts.toml
