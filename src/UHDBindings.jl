@@ -1,8 +1,8 @@
 module UHDBindings
 
 using Printf
-using USRPHardwareDriver_jll
-
+using Preferences
+using Libdl
 # ---------------------------------------------------- 
 # --- Architecture management 
 # ---------------------------------------------------- 
@@ -17,8 +17,39 @@ else
     const FORMAT_LONG = Clonglong;
 end
 
-const libUHD = USRPHardwareDriver_jll.libuhd
-
+# ----------------------------------------------------
+# --- Loading UHD library 
+# ---------------------------------------------------- 
+# We use Yggdrasil to load the artifact responsible for UHD.
+# It is possible to use a local install instead of the proposed UHD version 
+""" 
+Change UHD driver provider. Support "yggdrasil" to use shipped jll file or "local" to use custom installed library
+set_provider("yggdrasil")
+or 
+set_provider("local")
+"""
+function set_provider(new_provider::String)
+    if !(new_provider in ("yggdrasil", "local"))
+        throw(ArgumentError("Invalid provider: \"$(new_provider)\""))
+    end
+    # Set it in our runtime values, as well as saving it to disk
+    @set_preferences!("provider" => new_provider)
+    @info("New provider set; restart your Julia session for this change to take effect!")
+end
+function get_provider()
+    return @load_preference("provider","yggdrasil")
+end
+const uhd_provider = get_provider()
+@static  if uhd_provider == "yggdrasil"
+    # --- Using Yggdrasil jll file 
+    using USRPHardwareDriver_jll
+    const libUHD = USRPHardwareDriver_jll.libuhd
+end
+@static if uhd_provider == "local"
+    # --- Using local install, assuming it works
+    libUHD_system_h = dlopen("libuhd", false);
+    const libUHD = dlpath(libUHD_system_h)
+end
 # ---------------------------------------------------- 
 # --- Common configuration and structures 
 # ---------------------------------------------------- 
