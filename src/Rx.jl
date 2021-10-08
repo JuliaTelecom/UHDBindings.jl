@@ -237,7 +237,7 @@ recv!(sig,radio,nbSamples)
 -
 """
 function recv!(sig,radio::UHDRx;nbSamples=0,offset=0)
-    restartStreamer(radio)
+    # restartStreamer(radio)
 	# --- Defined parameters for multiple buffer reception 
 	filled		= false;
 	# --- Fill the input buffer @ a specific offset 
