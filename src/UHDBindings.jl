@@ -29,7 +29,7 @@ or
 set_provider("local")
 """
 function set_provider(new_provider::String)
-    if !(new_provider in ("yggdrasil", "local"))
+    if !(new_provider in ("yggdrasil","default", "local"))
         throw(ArgumentError("Invalid provider: \"$(new_provider)\""))
     end
     # Set it in our runtime values, as well as saving it to disk
@@ -40,7 +40,7 @@ function get_provider()
     return @load_preference("provider","yggdrasil")
 end
 const uhd_provider = get_provider()
-@static  if uhd_provider == "yggdrasil"
+@static  if uhd_provider == "yggdrasil" || uhd_provider =="local"
     # --- Using Yggdrasil jll file 
     using USRPHardwareDriver_jll
     const libUHD = USRPHardwareDriver_jll.libuhd
