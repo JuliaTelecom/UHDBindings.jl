@@ -92,12 +92,64 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain,antenna="RX2";args=
 	# --- Antenna configuration 
 	# ---------------------------------------------------- 
 	ccall((:uhd_usrp_set_rx_antenna, libUHD), Cvoid, (Ptr{uhd_usrp}, Cstring, Csize_t),pointerUSRP,antenna,0);
+<<<<<<< Updated upstream
+=======
+
+    # ----------------------------------------------------
+    # --- subdev ?
+    # ---------------------------------------------------- 
+    # addressSubDev = Ref{Ptr{uhd_subdev_spec_handle}}();
+    # cChar = Ref{Cchar}()
+    # ccall((:uhd_subdev_spec_make, libUHD), Cvoid, (Ptr{Ptr{uhd_subdev_spec_handle}},Ref{Cchar}),addressSubDev,cChar);
+    # ccall((:uhd_subdev_spec_push_back, libUHD), Cvoid, (Ptr{uhd_subdev_spec_handle},Cstring),addressSubDev[],"0:A");
+    # ccall((:uhd_subdev_spec_push_back, libUHD), Cvoid, (Ptr{uhd_subdev_spec_handle},Cstring),addressSubDev[],"0:B");
+
+    # pointerSize = Ref{Csize_t}()
+    # ccall((:uhd_subdev_spec_size, libUHD), Cvoid, (Ptr{uhd_subdev_spec_handle},Ref{Csize_t}),addressSubDev[],pointerSize);
+    # @show pointerSize[]
+
+    # sizeL = 200
+    # ar = createEmptyString(sizeL)
+    # ccall((:uhd_subdev_spec_to_pp_string, libUHD), Cvoid, (Ptr{uhd_subdev_spec_handle},Cstring,Csize_t),addressSubDev[],ar,sizeL);
+    # @show ar
+	# ---------------------------------------------------- 
+    # --- Channel and subdev configuration (antenna, channels...)
+	# ---------------------------------------------------- 
+	# Getting number of channel to ensure support of MIMO
+    nbChannelRx = Ref{Csize_t}(0)
+    ccall((:uhd_usrp_get_rx_num_channels, libUHD), Cvoid, (Ptr{uhd_usrp},Ptr{Csize_t}),pointerUSRP,nbChannelRx)
+    println("Number of rx channel is $(nbChannelRx[])")
+    #TODO Additional user API
+    # User format and parameters
+	a1			   =  Base.unsafe_convert(Cstring,"fc32");
+	a2			   =  Base.unsafe_convert(Cstring,"sc16");
+	a3			   =  Base.unsafe_convert(Cstring,uhdArgs);
+    # User defined channels
+    nbAntenna   = 2
+    cc      = zeros(Csize_t,nbAntenna)
+    for n ∈ 1 : nbAntenna
+        cc[n] = n-1
+    end
+    # pp = Ref(cc[1])
+    # pp = Ptr{Csize_t}(cc[1])
+    # ptr=Ptr{Csize_t}(pointer(cc,1))
+    global ptr = cc
+    @show eltype(ptr)
+    uhdArgs		= uhd_stream_args_t(a1,a2,a3,ptr,nbAntenna)
+
 	# ---------------------------------------------------- 
 	# --- Setting up streamer  
 	# ---------------------------------------------------- 
 	# --- Setting up arguments 
 	pointerArgs	  = Ref{uhd_stream_args_t}(uhdArgs);
-	ccall((:uhd_usrp_get_rx_stream, libUHD), Cvoid, (Ptr{uhd_usrp},Ptr{uhd_stream_args_t},Ptr{uhd_rx_streamer}),pointerUSRP,pointerArgs,uhd.pointerStreamer);
+    # FIXME Seg fault here with more than one antenna
+	ccall((:uhd_usrp_get_rx_stream, libUHD), uhd_error, (Ptr{uhd_usrp},Ptr{uhd_stream_args_t},Ptr{uhd_rx_streamer}),pointerUSRP,pointerArgs,uhd.pointerStreamer);
+    tmp = Ref{Csize_t}(0)
+    ccall((:uhd_rx_streamer_num_channels, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ptr{Csize_t}),uhd.pointerStreamer,tmp)
+    println("Number of rx channels of streamer is $(tmp[])")
+
+
+    @show cc
 	# --- Getting number of samples ber buffer 
 	pointerSamples	  = Ref{Csize_t}(0);
 	ccall((:uhd_rx_streamer_max_num_samps, libUHD), Cvoid, (Ptr{uhd_stream_args_t},Ref{Csize_t}),uhd.pointerStreamer,pointerSamples);

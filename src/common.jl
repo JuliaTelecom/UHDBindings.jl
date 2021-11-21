@@ -53,10 +53,12 @@ end
 # They are used for parameter identification, Rx Tx stage config 
 # and to configure the LO
 struct uhd_stream_args_t 
-	cpu_format::Cstring
+	cpu_format::Cstring;
 	otw_format::Cstring;
 	args::Cstring;
-	channel_list::Ref{Csize_t};
+    channel_list::Ref{Csize_t};
+    # channel_list::Ref{Csize_t}
+    # channel_list::Ptr{Csize_t}
 	n_channels::Cint;
 end
 struct uhd_tune_request_t 
