@@ -110,9 +110,10 @@ function openUHD(carrierFreq, samplingRate, gain, antenna = "RX2";args="")
 	# ---------------------------------------------------- 
 	# --- Handler  
 	# ---------------------------------------------------- 
-	addressUSRP = Ref{Ptr{uhd_usrp}}();
+	addressUSRP = Ref{uhd_usrp_handle}();
 	# --- Cal the init
-	@assert_uhd ccall((:uhd_usrp_make, libUHD), uhd_error, (Ptr{Ptr{uhd_usrp}}, Cstring),addressUSRP,args);
+	# @assert_uhd ccall((:uhd_usrp_make, libUHD), uhd_error, (Ptr{Ptr{uhd_usrp}}, Cstring),addressUSRP,args);
+    @assert_uhd uhd_usrp_make(addressUSRP,args)
 	# --- Get the usable object 
 	pointerUSRP = addressUSRP[];
 	# ---------------------------------------------------- 
