@@ -179,7 +179,7 @@ function check_recv_iterative()
    global sdr = openUHD(carrierFreq, samplingRate, gain;args="addr=$USRP_ADDRESS");
    sig = zeros(ComplexF32,2*1024)
    nbPackets  = 0
-   maxPackets = 100_000 
+   maxPackets = 1_000 
    for _ ∈ 1 : 1 : maxPackets
        # --- Get a burst 
        recv!(sig,sdr)

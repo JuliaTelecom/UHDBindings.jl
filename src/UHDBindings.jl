@@ -3,19 +3,7 @@ module UHDBindings
 using Printf
 using Preferences
 using Libdl
-# ---------------------------------------------------- 
-# --- Architecture management 
-# ---------------------------------------------------- 
-# We need to have a full word definition for time stamp format which is on 64 bits for 64 bits sytem and 32 bits for 32 bits system.
-# For an unknown (at this stage) reason Clonglong is mapped to 64 bits even on ARM device so state a
-# a special case if we use software on ARM device 
-# FIXME => Look for direct appropriate format on the e310
-const ARCHI = Sys.CPU_NAME == "cortex-a9" ? "arm" : "pc";
-if ARCHI == "arm"
-    const FORMAT_LONG = Int32;
-else 
-    const FORMAT_LONG = Clonglong;
-end
+
 
 # ----------------------------------------------------
 # --- Loading UHD library 
@@ -51,10 +39,11 @@ end
     const libUHD = dlpath(libUHD_system_h)
 end
 # ---------------------------------------------------- 
-# --- Common configuration and structures 
+# --- Bindings, structure and low level functions
 # ---------------------------------------------------- 
 # --- Including the file 
-include("common.jl");
+include("Bindings.jl");
+# Export necessary structures for high API level managment
 export Timestamp
 export UHDBinding
 # Exporting printing macros 
