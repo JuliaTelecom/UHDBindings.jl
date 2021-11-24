@@ -68,8 +68,8 @@ antennas = ["TX/RX","RX2"]
 a1			   =  Base.unsafe_convert(Cstring,"fc32");
 a2			   =  Base.unsafe_convert(Cstring,"sc16");
 a3			   =  Base.unsafe_convert(Cstring,uhdArgs);
-uhdArgs_0		   = LibUHD.uhd_stream_args_t(a1,a2,a3,pointer(channelIndexes,1),1);
-uhdArgs_1		   = LibUHD.uhd_stream_args_t(a1,a2,a3,pointer(channelIndexes,2),1);
+uhdArgs_0		   = LibUHD.uhd_stream_args_t(a1,a2,a3,pointer(channelIndexes,2),1);
+uhdArgs_1		   = LibUHD.uhd_stream_args_t(a1,a2,a3,pointer(channelIndexes,1),1);
 # --- RF Configuration 
 for (c,currChan) in enumerate(channelIndexes)
     updateCarrierFreq!(rx,carrierFreq,currChan)
@@ -83,12 +83,19 @@ pointerSubDev = Ref{LibUHD.uhd_subdev_spec_handle}()
 @assert_uhd LibUHD.uhd_usrp_set_rx_subdev_spec(rx.uhd.pointerUSRP,pointerSubDev[],0)
 LibUHD.uhd_subdev_spec_free(pointerSubDev)
 # --- Internal buffer management 
-pointerArgs	  = Ref{LibUHD.uhd_stream_args_t}(uhdArgs);
+pointerArgs	  = Ref{LibUHD.uhd_stream_args_t}(uhdArgs_0);
+pointerSamples = Ref{Csize_t}(0);
+@assert_uhd LibUHD.uhd_usrp_get_rx_stream(rx.uhd.pointerUSRP,pointerArgs,pointerStreamer_0)
+@assert_uhd LibUHD.uhd_rx_streamer_max_num_samps(pointerStreamer_0,pointerSamples)
+println("Internal buffer size is $(pointerSamples[])")
+rx.packetSize= pointerSamples[]
+# --- Internal buffer management 
+pointerArgs	  = Ref{LibUHD.uhd_stream_args_t}(uhdArgs_1);
 pointerSamples = Ref{Csize_t}(0);
 @assert_uhd LibUHD.uhd_usrp_get_rx_stream(rx.uhd.pointerUSRP,pointerArgs,pointerStreamer_1)
 @assert_uhd LibUHD.uhd_rx_streamer_max_num_samps(pointerStreamer_1,pointerSamples)
 println("Internal buffer size is $(pointerSamples[])")
-rx.packetSize= pointerSamples[]
+
 
 # ----------------------------------------------------
 # --- Set up streamer 
@@ -96,8 +103,9 @@ rx.packetSize= pointerSamples[]
 # streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_MORE,rx.packetSize,false,1,0.5);
 streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_MORE,rx.packetSize,true,0,0);
 pointerCmd	= Ref{UHDBindings.uhd_stream_cmd_t}(streamCmd);
+LibUHD.uhd_rx_streamer_issue_stream_cmd(pointerStreamer_0,pointerCmd)
+pointerCmd	= Ref{UHDBindings.uhd_stream_cmd_t}(streamCmd);
 LibUHD.uhd_rx_streamer_issue_stream_cmd(pointerStreamer_1,pointerCmd)
-LibUHD.uhd_rx_streamer_issue_stream_cmd(pointerStreamer_2,pointerCmd)
 
 # ---------------------------------------------------- 
 # --- Julia buffers 
@@ -112,8 +120,8 @@ pointerCounterSamples = Ref{Csize_t}(0);
 # ----------------------------------------------------
 # --- Receive data 
 # ---------------------------------------------------- 
-LibUHD.uhd_rx_streamer_recv(pointerStreamer_1,ptr,nbSamples,rx.uhd.addressMD,0.1,true,pointerCounterSamples)
-LibUHD.uhd_rx_streamer_recv(pointerStreamer_2,ptr,nbSamples,rx.uhd.addressMD,0.1,true,pointerCounterSamples)
+LibUHD.uhd_rx_streamer_recv(pointerStreamer_0,ptr,nbSamples,rx.uhd.addressMD,0.1,true,pointerCounterSamples)
+# LibUHD.uhd_rx_streamer_recv(pointerStreamer_1,ptr,nbSamples,rx.uhd.addressMD,0.1,true,pointerCounterSamples)
 nbSamples = pointerCounterSamples[]
 println("Receive $nbSamples samples")
 
@@ -127,7 +135,7 @@ LibUHD.uhd_rx_metadata_strerror(rx.uhd.addressMD[],container,n)
 @show container
 
 container = initEmptyString(n)
-LibUHD.uhd_rx_streamer_last_error(pointerStreamer_1,container,n)
+LibUHD.uhd_rx_streamer_last_error(pointerStreamer_0,container,n)
 @show container
 
 # ----------------------------------------------------
