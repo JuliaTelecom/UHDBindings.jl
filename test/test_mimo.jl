@@ -19,7 +19,10 @@ Retrict the big string used as log container to its usefull part
 function truncate(s::String)
     return s[1 : findfirst("\0",s)[1] - 1]
 end
-
+""" 
+Interrupt the script just at right place 
+"""
+stop() = error("Decide to stop the script. Be sure to release all ressources")
 # ----------------------------------------------------
 # --- Parameters 
 # ---------------------------------------------------- 
@@ -28,7 +31,7 @@ samplingRate = 2e6
 gain        = 25
 # uhdArgs     = "num_recv_frames=1000"
 uhdArgs     = ""
-nbAntennaRx = 1
+nbAntennaRx = 2
 
 # ----------------------------------------------------
 # --- Address extraction
@@ -103,16 +106,36 @@ sleep(0.1)
 # --- Julia buffers 
 # ---------------------------------------------------- 	
 # Define an array to get all the buffers from all the channels 
-nbSamples      = rx.packetSize
-# sig            = zeros(Complex{Cdouble},rx.packetSize , nbAntennaRx)
-sig =  [zeros(Complex{Cfloat},rx.packetSize) for n ∈ 1:nbAntennaRx]
-ptr            = Ref(Ptr{Cvoid}(pointer(sig,1)));
+nbSamples             = rx.packetSize
+sig                   = [zeros(Complex{Cfloat},rx.packetSize) for n ∈ 1:nbAntennaRx]
+listBuffer            = [pointer(sig[n],1) for n ∈ 1 : nbAntennaRx]
+ptr                   = Ref(Ptr{Cvoid}(listBuffer[1]))
 pointerCounterSamples = Ref{Csize_t}(0);
+# ptr            = Ref(Ptr{Cvoid}(pointer(sig[1],1)))
+
+
 
 # ----------------------------------------------------
-# --- Receive data 
+# --- Classic way
 # ---------------------------------------------------- 
+# sig            = zeros(Complex{Cdouble},rx.packetSize , nbAntennaRx)
+# ptr            = Ref(Ptr{Cvoid}(pointer(sig,1)))
+
+# # ----------------------------------------------------
+# # --- Receive data 
+# # ---------------------------------------------------- 
+pointerCounterSamples = Ref{Csize_t}(0);
 LibUHD.uhd_rx_streamer_recv(rx.uhd.pointerStreamer,ptr,nbSamples,rx.uhd.addressMD,1.6,true,pointerCounterSamples)
+nbSamples = pointerCounterSamples[]
+println("Receive $nbSamples samples")
+
+
+# ----------------------------------------------------
+# --- Second call 
+# ---------------------------------------------------- 
+UHDBindings.restartStreamer(rx)
+pointerCounterSamples = Ref{Csize_t}(0);
+LibUHD.uhd_rx_streamer_recv(rx.uhd.pointerStreamer,ptr,nbSamples,rx.uhd.addressMD,0,true,pointerCounterSamples)
 nbSamples = pointerCounterSamples[]
 println("Receive $nbSamples samples")
 
