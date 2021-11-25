@@ -97,7 +97,7 @@ rx.packetSize= pointerSamples[]
 # ----------------------------------------------------
 # --- Set up streamer 
 # ---------------------------------------------------- 
-streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_DONE,rx.packetSize,false,1,0.5);
+streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_MORE,rx.packetSize*10_000,false,1,0.5);
 # streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_MORE,rx.packetSize,true,0,0);
 pointerCmd	= Ref{UHDBindings.uhd_stream_cmd_t}(streamCmd);
 LibUHD.uhd_rx_streamer_issue_stream_cmd(rx.uhd.pointerStreamer,pointerCmd)
@@ -109,11 +109,9 @@ sleep(0.1)
 nbSamples             = rx.packetSize
 sig                   = [zeros(Complex{Cfloat},rx.packetSize) for n ∈ 1:nbAntennaRx]
 listBuffer            = [pointer(sig[n],1) for n ∈ 1 : nbAntennaRx]
-ptr                   = Ref(Ptr{Cvoid}(listBuffer[1]))
+# ptr                   = Ref(Ptr{Cvoid}(listBuffer[1]))
+ptr                   = listBuffer
 pointerCounterSamples = Ref{Csize_t}(0);
-# ptr            = Ref(Ptr{Cvoid}(pointer(sig[1],1)))
-
-
 
 # ----------------------------------------------------
 # --- Classic way
@@ -126,18 +124,25 @@ pointerCounterSamples = Ref{Csize_t}(0);
 # # ---------------------------------------------------- 
 pointerCounterSamples = Ref{Csize_t}(0);
 LibUHD.uhd_rx_streamer_recv(rx.uhd.pointerStreamer,ptr,nbSamples,rx.uhd.addressMD,1.6,true,pointerCounterSamples)
-nbSamples = pointerCounterSamples[]
-println("Receive $nbSamples samples")
+nbReceivedSamples = pointerCounterSamples[]
+println("Receive $nbReceivedSamples samples")
 
 
 # ----------------------------------------------------
 # --- Second call 
 # ---------------------------------------------------- 
-UHDBindings.restartStreamer(rx)
-pointerCounterSamples = Ref{Csize_t}(0);
-LibUHD.uhd_rx_streamer_recv(rx.uhd.pointerStreamer,ptr,nbSamples,rx.uhd.addressMD,0,true,pointerCounterSamples)
-nbSamples = pointerCounterSamples[]
-println("Receive $nbSamples samples")
+# UHDBindings.restartStreamer(rx)
+# streamCmd	= UHDBindings.uhd_stream_cmd_t(UHDBindings.UHD_STREAM_MODE_NUM_SAMPS_AND_MORE,rx.packetSize,true,0,0);
+# pointerCmd	= Ref{UHDBindings.uhd_stream_cmd_t}(streamCmd);
+# LibUHD.uhd_rx_streamer_issue_stream_cmd(rx.uhd.pointerStreamer,pointerCmd)
+accum = 0
+for iN = 1 : 1 : 1000
+    pointerCounterSamples = Ref{Csize_t}(0);
+    LibUHD.uhd_rx_streamer_recv(rx.uhd.pointerStreamer,ptr,nbSamples,rx.uhd.addressMD,0,true,pointerCounterSamples)
+    nbReceivedSamples = pointerCounterSamples[]
+    global accum += nbReceivedSamples
+end
+println("End of transmission, received $accum samples")
 
 # ----------------------------------------------------
 # --- Logs
