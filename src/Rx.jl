@@ -277,12 +277,13 @@ function recv!(sig::Vector{Vector{Complex{T}}},radio::UHDRx;nbSamples=0,offset=0
 		# --- Ensure that the allocation is possible
         @assert nbSamples < (length(sig[1])+posT) "Impossible to fill the buffer (number of samples > residual size";
 	end
+    global SIG = sig
 	while !filled 
 		# --- Get a buffer: We should have radio.packetSize or less 
 		# radio.packetSize is the complex size, so x2
 		(posT+radio.packetSize> nbSamples) ? n = nbSamples - posT : n = radio.packetSize;
 		# --- To avoid memcopy, we direclty feed the pointer at the appropriate solution
-        ptr = [pointer(sig[n],1+posT) for n ∈ 1 : radio.nbAntennaRx]
+        ptr = [pointer(sig[k],1+posT) for k ∈ 1 : radio.nbAntennaRx]
 		# --- Populate buffer with radio samples
 		cSamples 	= populateBuffer!(radio,ptr,n);
 		# --- Update counters 

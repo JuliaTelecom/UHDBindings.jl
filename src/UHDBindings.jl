@@ -234,7 +234,8 @@ end
 # When given to UHDBinding, recv and send will dispatch to the appropriate substructure 
 # Recv
 recv(radio::UHDBinding,nbSamples)  = recv(radio.rx,nbSamples);
-recv!(sig,radio::UHDBinding;kwargs...) = recv!(sig,radio.rx;kwargs...);
+recv!(sig::Vector{Vector{T}},radio::UHDBinding;kwargs...) where T = recv!(sig,radio.rx;kwargs...);
+recv!(sig::Vector{T},radio::UHDBinding;kwargs...) where T = recv!([sig],radio.rx;kwargs...);
 # Send 
 send(radio::UHDBinding,params...) = send(radio.tx,params...);
 
