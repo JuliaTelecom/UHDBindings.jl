@@ -159,7 +159,7 @@ function check_recv_preAlloc()
     # --- Create the E310 device 
    global sdr = openUHD(carrierFreq, samplingRate, gain;args="addr=$USRP_ADDRESS");
    sig = zeros(ComplexF32,2*1024)
-   recv!(sig,sdr)
+   recv!([sig],sdr)
    @test length(sig) == 1024*2
    @test eltype(sig) == Complex{Float32}
    @test length(unique(sig)) > 1 # To be sure we have populated array with data
@@ -182,7 +182,7 @@ function check_recv_iterative()
    maxPackets = 1_000 
    for _ ∈ 1 : 1 : maxPackets
        # --- Get a burst 
-       recv!(sig,sdr)
+       recv!([sig],sdr)
        # --- Increment packet index 
        nbPackets += 1
    end 

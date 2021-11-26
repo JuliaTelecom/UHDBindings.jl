@@ -50,9 +50,11 @@ mutable struct UHDRx
 	carrierFreq::Float64;
 	samplingRate::Float64;
 	gain::Union{Int,Float64}; 
-	antenna::String;
+    antennas::Vector{String};
+    channels::Vector{Int};
 	packetSize::Csize_t;
 	released::Int;
+    nbAntennaRx::Int;
 end
 
 # --- Structure with pointer reference
@@ -70,9 +72,11 @@ mutable struct UHDTx
 	carrierFreq::Float64;
 	samplingRate::Float64;
 	gain::Union{Int,Float64}; 
-	antenna::String;
+    antennas::Vector{String};
+    channels::Vector{Int};
 	packetSize::Csize_t;
 	released::Int;
+    nbAntennaTx::Int;
 end
 
 # ----------------------------------------------------
