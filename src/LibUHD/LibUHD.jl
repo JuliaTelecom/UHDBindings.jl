@@ -1,5 +1,7 @@
 module LibUHD
 
+# Bindings generated with Clang.jl ! https://github.com/JuliaInterop/Clang.jl 
+
 # ----------------------------------------------------
 # --- Dependencies 
 # ---------------------------------------------------- 
