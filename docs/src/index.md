@@ -38,7 +38,6 @@ julia> import Pkg; Pkg.add("UHDBindings
 ## Version 0.3 
 - LibUHD refactor. Bindings have been generated with [`Clang.jl`](https://github.com/JuliaInterop/Clang.jl). It is possible to use a custom configuration after initialize the radio with `openUHD`. See the MIMO example 
 - API update ! We now support natively multiple boards and MIMO. 
-:w
 
 ## Version 0.2.2
 - The UHD lib is now automatically provided by Yggdrasil ! 
