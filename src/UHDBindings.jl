@@ -3,19 +3,7 @@ module UHDBindings
 using Printf
 using Preferences
 using Libdl
-# ---------------------------------------------------- 
-# --- Architecture management 
-# ---------------------------------------------------- 
-# We need to have a full word definition for time stamp format which is on 64 bits for 64 bits sytem and 32 bits for 32 bits system.
-# For an unknown (at this stage) reason Clonglong is mapped to 64 bits even on ARM device so state a
-# a special case if we use software on ARM device 
-# FIXME => Look for direct appropriate format on the e310
-const ARCHI = Sys.CPU_NAME == "cortex-a9" ? "arm" : "pc";
-if ARCHI == "arm"
-    const FORMAT_LONG = Int32;
-else 
-    const FORMAT_LONG = Clonglong;
-end
+
 
 # ----------------------------------------------------
 # --- Loading UHD library 
@@ -51,10 +39,11 @@ end
     const libUHD = dlpath(libUHD_system_h)
 end
 # ---------------------------------------------------- 
-# --- Common configuration and structures 
+# --- Bindings, structure and low level functions
 # ---------------------------------------------------- 
 # --- Including the file 
-include("common.jl");
+include("Bindings.jl");
+# Export necessary structures for high API level managment
 export Timestamp
 export UHDBinding
 # Exporting printing macros 
@@ -100,29 +89,34 @@ openUHD(mode,sysImage,carrierFreq,samplingRate,txGain,antenna="RX2")
 - carrierFreq	: Desired Carrier frequency [Union{Int,Float64}] 
 - samplingRate	: Desired bandwidth [Union{Int,Float64}] 
 - gain		: Desired Gain [Union{Int,Float64}] 
-- antenna		: Desired Antenna alias [String]
+- antenna		: Desired Antenna alias Dict{Symbol,Vector[String]} (e.g. Dict(:Rx=>["RX2"],:Tx=>["TRX"]))
 Keywords=
 - args	  : String with the additionnal load parameters (for instance, path to the FPHGA image) [String]
 # --- Output parameters 
 - uhd		  	: UHD object [UHDBinding]
 """ 
-function openUHD(carrierFreq, samplingRate, gain, antenna = "RX2";args="")
+function openUHD(carrierFreq, samplingRate, gain;args="",channels=[0],antennas=Dict(:Rx=>["RX2"],:Tx=>["TRX"]),cpu_format="fc32",otw_format="sc16",subdev="",nbAntennaRx=1,nbAntennaTx=1,bypassStreamer=false)
 	# ---------------------------------------------------- 
 	# --- Handler  
 	# ---------------------------------------------------- 
-	addressUSRP = Ref{Ptr{uhd_usrp}}();
+	addressUSRP = Ref{uhd_usrp_handle}();
 	# --- Cal the init
-	@assert_uhd ccall((:uhd_usrp_make, libUHD), uhd_error, (Ptr{Ptr{uhd_usrp}}, Cstring),addressUSRP,args);
+    @assert_uhd uhd_usrp_make(addressUSRP,args)
 	# --- Get the usable object 
 	pointerUSRP = addressUSRP[];
+    # ----------------------------------------------------
+    # --- Manage dictionnaries for custom option passing 
+    # ----------------------------------------------------
+    aTx = parseDict(antennas,:Tx,["TRX"])
+    aRx = parseDict(antennas,:Rx,["RX2"])
 	# ---------------------------------------------------- 
 	# --- Set Rx stage  
 	# ---------------------------------------------------- 	
-	rx = openUHDRx(pointerUSRP,carrierFreq, samplingRate, gain, antenna;args=args);
+    rx = openUHDRx(pointerUSRP,carrierFreq, samplingRate, gain;channels,antennas=aRx,args,cpu_format,otw_format,subdev,nbAntennaRx,bypassStreamer)
 	# ---------------------------------------------------- 
 	# --- Set Tx stage  
 	# ---------------------------------------------------- 	
-	tx = openUHDTx(pointerUSRP,carrierFreq, samplingRate, gain, antenna;args=args);
+    tx = openUHDTx(pointerUSRP,carrierFreq, samplingRate, gain;channels,antennas=aTx,args,cpu_format,otw_format,subdev,nbAntennaTx,bypassStreamer)
 	# ---------------------------------------------------- 
 	# --- Create radio 
 	# ----------------------------------------------------	
@@ -130,6 +124,10 @@ function openUHD(carrierFreq, samplingRate, gain, antenna = "RX2";args="")
 	return uhdBinding;
 end
 export openUHD;
+
+# Be able to get a default value
+parseDict(d,key,val=0) = (haskey(d,key) ? d[key] : val)
+
 
 """ 
 Close the USRP device (Rx or Tx mode) and release all associated objects
@@ -147,7 +145,7 @@ function Base.close(uhdBinding::UHDBinding)
 	close(uhdBinding.rx);
 	close(uhdBinding.tx);
 	# --- Close the USRP main object 
-	@assert_uhd  ccall((:uhd_usrp_free, libUHD), uhd_error, (Ptr{Ptr{uhd_usrp}},),uhdBinding.addressUSRP);
+    @assert_uhd uhd_usrp_free(uhdBinding.addressUSRP);
 	# --- Print a flag
 	print("\n");
 	@info "USRP device is now closed.";
@@ -159,16 +157,17 @@ Print the radio configuration
 
 # --- Syntax 
 
-print(radio)
+print(radio,chan=0)
 # --- Input parameters 
 - radio		: UHD object [Union{UHDBinding,UHDTx,UHDRx}]
+- chan : Channel index to display (default 0)
 # --- Output parameters 
 - []
 """
-function Base.print(radio::UHDBinding)
+function Base.print(radio::UHDBinding,chan=0)
 	# --- Print the configuration of Tx and Rx 
-	print(radio.rx);
-	print(radio.tx);
+	print(radio.rx,chan);
+	print(radio.tx,chan);
 end
 
 # All functions are defined @UHDTx or @UHDRx level, we should define configuration functions @UHDBinding level 
@@ -180,16 +179,17 @@ If the input is a [UHDRx] or a [UHDTx] object, it updates only the Rx or Tx samp
 
 # --- Syntax 
 
-updateSamplingRate!(radio,samplingRate)
+updateSamplingRate!(radio,samplingRate,chan=0)
 # --- Input parameters 
 - radio	  : UHD device [Union{UHDBinding,UHDRx,UHDTx}]
 - samplingRate	: New desired sampling rate 
+- chan : Channel index to use (default 0)
 # --- Output parameters 
 - 
 """
-function updateSamplingRate!(radio::UHDBinding,samplingRate)
-	@sync updateSamplingRate!(radio.rx,samplingRate);
-	@sync updateSamplingRate!(radio.tx,samplingRate);
+function updateSamplingRate!(radio::UHDBinding,samplingRate,chan=0)
+	@sync updateSamplingRate!(radio.rx,samplingRate,chan);
+	@sync updateSamplingRate!(radio.tx,samplingRate,chan);
 end
 
 
@@ -203,12 +203,13 @@ updateCarrierFreq!(radio,carrierFreq)
 # --- Input parameters 
 - radio	  : UHD device [Union{UHDBinding,UHDRx,UHDTx}]
 - carrierFreq	: New desired carrier frequency 
+- chan : Channel index to use (default 0)
 # --- Output parameters 
 - 
 """
-function updateCarrierFreq!(radio::UHDBinding,carrierFreq)
-	@sync updateCarrierFreq!(radio.rx,carrierFreq);
-	@sync updateCarrierFreq!(radio.tx,carrierFreq);
+function updateCarrierFreq!(radio::UHDBinding,carrierFreq,chan=0)
+	@sync updateCarrierFreq!(radio.rx,carrierFreq,chan);
+	@sync updateCarrierFreq!(radio.tx,carrierFreq,chan);
 end
 
 """ 
@@ -221,21 +222,33 @@ updateGain!(radio,gain)
 # --- Input parameters 
 - radio	  : UHD device [Union{UHDBinding,UHDRx,UHDTx}]
 - gain	: New desired gain 
+- chan : Channel index to use (default 0)
 # --- Output parameters 
 - 
 """
-function updateGain!(radio::UHDBinding,gain)
-	@sync updateGain!(radio.rx,gain);
-	@sync updateGain!(radio.tx,gain);
+function updateGain!(radio::UHDBinding,gain,chan=0)
+	@sync updateGain!(radio.rx,gain,chan);
+	@sync updateGain!(radio.tx,gain,chan);
 end
 
 # When given to UHDBinding, recv and send will dispatch to the appropriate substructure 
 # Recv
 recv(radio::UHDBinding,nbSamples)  = recv(radio.rx,nbSamples);
-recv!(sig,radio::UHDBinding;kwargs...) = recv!(sig,radio.rx;kwargs...);
+recv!(sig::Vector{Vector{T}},radio::UHDBinding;kwargs...) where T = recv!(sig,radio.rx;kwargs...);
+recv!(sig::Vector{T},radio::UHDBinding;kwargs...) where T = recv!([sig],radio.rx;kwargs...);
 # Send 
 send(radio::UHDBinding,params...) = send(radio.tx,params...);
 
+
+# Config can laos be dispatch 
+uhd_usrp_create_stream(radio::UHDBinding;kwargs...) = uhd_usrp_create_stream(radio.rx;kwargs...)
+
+"""" 
+Returns the  internal radio buffer size 
+""" 
+function getBufferSize(radio)
+    return radio.rx.packetSize
+end
 
 # ---------------------------------------------------- 
 # --- Common functions and structures   
@@ -245,7 +258,7 @@ export updateGain!
 export updateCarrierFreq!
 export print; 
 export close;
-
+export getBufferSize
 
 
 end # module

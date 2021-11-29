@@ -27,7 +27,7 @@ end
 """
 Main call to monitor Rx rate
 """
-function main(samplingRate,args)	
+function main(samplingRate,args,duration=2)	
 	# ---------------------------------------------------- 
 	# --- Physical layer and RF parameters 
 	# ---------------------------------------------------- 
@@ -40,13 +40,14 @@ function main(samplingRate,args)
 	# --- Init parameters 
 	# Get the radio size for buffer pre-allocation
 	nbSamples 		= radio.rx.packetSize;
+    @show nbSamples
 	# We will get complex samples from recv! method
-	sig		  = zeros(Complex{Cfloat},nbSamples); 
+    sig		  = zeros(Complex{Cfloat},nbSamples); 
 	# --- Targeting 2 seconds acquisition
 	# Init counter increment
 	nS		  = 0;
 	# Max counter definition
-	nbBuffer  = 2*samplingRate;
+	nbBuffer  = samplingRate*duration;
 	# --- Timestamp init 
 	p 			= recv!(sig,radio);
 	nS			+= p;

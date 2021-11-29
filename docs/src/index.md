@@ -24,12 +24,26 @@ pkg> add UHDBindings
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add("UHDBindings")
+julia> import Pkg; Pkg.add("UHDBindings
 ```
 
 
 ## Documentation 
 
-
 - The base documentation with the different functions can be found [in the base section](base.md)
 - Different examples are described in [in the example section](examples.md). Other examples are provided in the example subfolder of the project. 
+
+## Project updates highlights 
+
+## Version 0.3 
+- LibUHD refactor. Bindings have been generated with [`Clang.jl`](https://github.com/JuliaInterop/Clang.jl). It is possible to use a custom configuration after initialize the radio with `openUHD`. See the MIMO example 
+- API update ! We now support natively multiple boards and MIMO. 
+:w
+
+## Version 0.2.2
+- The UHD lib is now automatically provided by Yggdrasil ! 
+- It is still possible to use a custom local UHD installation with the use of `Preferences.jl` by setting `UHDBindings.set_provider("local")`
+
+
+## Version 0.2 
+- Switch to UHD with version 4.0 with artifact 
