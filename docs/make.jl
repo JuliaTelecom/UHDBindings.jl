@@ -11,6 +11,7 @@ makedocs(sitename="UHDBindings.jl",
 														 "Examples/example_parameters.md"
 														 "Examples/example_benchmark.md"
 														 ],
+                        "Custom use of LibUHD" => "use_libuhd.md",
 						],
 		 );
 

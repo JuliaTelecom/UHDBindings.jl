@@ -244,7 +244,7 @@ send(radio::UHDBinding,params...) = send(radio.tx,params...);
 uhd_usrp_create_stream(radio::UHDBinding;kwargs...) = uhd_usrp_create_stream(radio.rx;kwargs...)
 
 """" 
-Returns the radio internal buffer size 
+Returns the  internal radio buffer size 
 """ 
 function getBufferSize(radio)
     return radio.rx.packetSize
