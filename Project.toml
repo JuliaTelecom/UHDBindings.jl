@@ -1,7 +1,7 @@
 name = "UHDBindings"
 uuid = "4d90b16f-829e-4b78-80d9-fb9bcf8c06e0"
 authors = ["Robin Gerzaguet <robin.gerzaguet@irisa.fr>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
