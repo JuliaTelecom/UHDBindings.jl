@@ -31,7 +31,20 @@ const uhd_provider = get_provider()
 @static  if uhd_provider == "yggdrasil" || uhd_provider =="local"
     # --- Using Yggdrasil jll file 
     using USRPHardwareDriver_jll
-    const libUHD = USRPHardwareDriver_jll.libuhd
+    try 
+        # --- We load the lib, but in two steps in case of an problem occur
+        global tmp_libUHD = USRPHardwareDriver_jll 
+    catch exception 
+        # A problem occured :D. Load manually the lib
+        @warn "Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil."
+        @info "We fallback to local provider. It means that UHDBindings will work if you have installed a functionnal version of UHD on your system"
+        libUHD_system_h = dlopen("libuhd", false);
+        global tmp_libUHD =  dlpath(libUHD_system_h)
+        # --- Change provider 
+        set_provider("local")
+    end
+    # --- Point lib here it is good
+    const libUHD = tmp_libUHD
 end
 @static if uhd_provider == "local"
     # --- Using local install, assuming it works
