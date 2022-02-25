@@ -7,7 +7,11 @@ module LibUHD
 # ---------------------------------------------------- 
 using USRPHardwareDriver_jll
 using CEnum
-
+@static if uhd_provider == "local"
+    # --- Using local install, assuming it works
+    libUHD_system_h = dlopen("libuhd", false);
+    const libuhd = dlpath(libUHD_system_h)
+end
 # ----------------------------------------------------
 # --- Constant
 # ---------------------------------------------------- 
