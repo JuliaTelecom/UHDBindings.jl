@@ -33,7 +33,7 @@ const uhd_provider = get_provider()
     using USRPHardwareDriver_jll
     try 
         # --- We load the lib, but in two steps in case of an problem occur
-        global tmp_libUHD = USRPHardwareDriver_jll 
+        global tmp_libUHD = USRPHardwareDriver_jll.libuhd 
     catch exception 
         # A problem occured :D. Load manually the lib
         @warn "Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil."
