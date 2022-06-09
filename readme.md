@@ -60,7 +60,54 @@ Or, equivalently, via the `Pkg` API:
 
 ```julia
 julia> import Pkg; Pkg.add("UHDBindings")
+
 ```
+
+## Note for Linux // MacOs 
+
+Installation is automatic, it means that you do not require to have a fully manually installed version of UHD. 
+
+
+## Notes for Window installation 
+
+We have some struggle to automatize installation for windows. At the moment, it is possible to have UHDBindings only through a manual installation 
+- First install UHD. You can find the lastest release on [UHD website](https://files.ettus.com/manual/page_install.html). It contains an installer that creates a bunch of files. We will need the `.dll` file. You can also run one of the executable (for instance `uhd_find_devices.exe`) to be sure you have a functional version of UHD (for instance no issue with `lib-usb`).
+
+Now on Julia side 
+- Add UHDBindings with  `]add UHDBindings`
+- Run `using UHDBindings`. It should lead to several info/warning messages 
+
+
+
+            julia> using UHDBindings
+            [ Info: Precompiling UHDBindings [4d90b16f-829e-4b78-80d9-fb9bcf8c06e0]
+            ┌ Warning: Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil.
+            └ @ UHDBindings C:\Users\Robin\.julia\dev\UHDBindings\src\UHDBindings.jl:51
+            [ Info: We fallback to local provider. It means that UHDBindings will work if you have installed a functionnal version of UHD on your system
+            [ Info: New provider set; restart your Julia session for this change to take effect!
+            ┌ Warning: Unable to load the lib, the path should be updated to be the appropriate one using `set_lib_path`.
+            └ @ UHDBindings C:\Users\Robin\.julia\dev\UHDBindings\src\UHDBindings.jl:63
+            
+- It means a local installation is required (see UHD notes regarding UHD installation) and that you need to point the UHD lib to UHDBindings. Assuming installation went Ok, let's focus on binding the UHD lib path to Julia.
+- In the REPL type 
+
+
+
+
+        julia> UHDBindings.set_lib_path("C:\\Users\\Robin\\Documents\\UHD\\bin\\uhd.dll") 
+
+- Note that the path is complete and should contain the DLL extension. 
+- Restart a fresh Julia session and type `using UHDBindings`. It should works ! 
+
+
+        julia> using UHDBindings
+        [ Info: Precompiling UHDBindings [4d90b16f-829e-4b78-80d9-fb9bcf8c06e0]
+        
+        julia> uhd_find_devices()
+        [INFO] [UHD] Win32; Microsoft Visual C++ version 1925; Boost_107000; UHD_4.2.0.0-release
+        [ Info: No UHD devices found. Try with "addr=xxx.xxx.x.x" to specify the USRP IP address
+        String[]
+
 
 ## Documentation
 
