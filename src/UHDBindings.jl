@@ -40,35 +40,40 @@ function get_lib_path()
 end
 
 const uhd_provider = get_provider()
-@static  if uhd_provider == "yggdrasil" || uhd_provider =="local"
+@static  if uhd_provider == "yggdrasil" || uhd_provider =="default"
     # --- Using Yggdrasil jll file 
     using USRPHardwareDriver_jll
     try 
         # --- We load the lib, but in two steps in case of an problem occur
+        # The condition here are long... As by default we use Yggdrasil we have to find if the loading operation are Ok. We first test that the lib exist and if it is not the case, we try to load the lib in the default path. If there are no such lib, we ask the user to specify it using Preferences.jl
         global tmp_libUHD = USRPHardwareDriver_jll.libuhd 
     catch exception 
         # A problem occured :D. Load manually the lib
         @warn "Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil."
         @info "We fallback to local provider. It means that UHDBindings will work if you have installed a functionnal version of UHD on your system"
-        @info "You should specify the path of the uhd library (especially on windows). If you don't want to update the lib path enter \"\""
-        ml = readline() # User can set the lib path now 
-        if ml !== ""
-            set_lib_path(ml)
-        end
-        myLib = get_lib_path()
-        libUHD_system_h = dlopen(myLib, false);
-        global tmp_libUHD =  dlpath(libUHD_system_h)
         # --- Change provider 
         set_provider("local")
+        # Try to load the lib using default path
+        myLib = get_lib_path()
+        try 
+            # Load the lib for fun. If it fails, we raise a warning 
+            libUHD_system_h = dlopen(myLib, false);
+            global tmp_libUHD =  libUHD_system_h
+        catch exception2 
+            # We cannot find the lib, say to the user to manually update the lib path (including .dll / .so / .dylib)
+            @warn "Unable to load the lib, the path should be updated to the appropriate location using `UHDBindings.set_lib_path`. For instance UHDBindings.set_lib_path(\"C:\\Users\\Robin\\Documents\\UHD\\bin\\uhd.dll\")"
+            global tmp_libUHD = ""      # To have a const defined. Note that this require a session reload
+        end
     end
     # --- Point lib here it is good
     const libUHD = tmp_libUHD
 end
 @static if uhd_provider == "local"
     # --- Using local install, assuming it works
-    myLib = get_lib_path()
+    myLib           = get_lib_path()
     libUHD_system_h = dlopen(myLib, false);
-    const libUHD = dlpath(libUHD_system_h)
+    tmp_libUHD      = dlpath(libUHD_system_h)
+    const libUHD    = tmp_libUHD
 end
 # ---------------------------------------------------- 
 # --- Bindings, structure and low level functions
@@ -293,4 +298,4 @@ export close;
 export getBufferSize
 
 
-end # module
+end # moduled # module
