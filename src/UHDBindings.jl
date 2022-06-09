@@ -27,6 +27,18 @@ end
 function get_provider()
     return @load_preference("provider","yggdrasil")
 end
+
+""" Set the path for the UHD shared library (e.g /Documents/Program/UHD/libuhd.dll or /opt/local/uhd/uhd.lib") Usefull for custom installation without messing up the PATHs
+Example= set_lib_path("C://Program/UHD/bin/libUHD.dll")
+"""
+function set_lib_path(new_path::String)
+    @set_preferences!("lib_path" => new_path)
+    @info ("New path for UHD shared lib; restart your Julia session for this change to take effect!")
+end
+function get_lib_path()
+    return @load_preference("lib_path","libuhd")
+end
+
 const uhd_provider = get_provider()
 @static  if uhd_provider == "yggdrasil" || uhd_provider =="local"
     # --- Using Yggdrasil jll file 
@@ -38,7 +50,9 @@ const uhd_provider = get_provider()
         # A problem occured :D. Load manually the lib
         @warn "Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil."
         @info "We fallback to local provider. It means that UHDBindings will work if you have installed a functionnal version of UHD on your system"
-        libUHD_system_h = dlopen("libuhd", false);
+        @info "You should specify the path of the uhd library (especailly on windows). This can be done with "
+        myLib = get_lib_path()
+        libUHD_system_h = dlopen(myLib, false);
         global tmp_libUHD =  dlpath(libUHD_system_h)
         # --- Change provider 
         set_provider("local")
@@ -48,7 +62,8 @@ const uhd_provider = get_provider()
 end
 @static if uhd_provider == "local"
     # --- Using local install, assuming it works
-    libUHD_system_h = dlopen("libuhd", false);
+    myLib = get_lib_path()
+    libUHD_system_h = dlopen(myLib, false);
     const libUHD = dlpath(libUHD_system_h)
 end
 # ---------------------------------------------------- 

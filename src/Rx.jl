@@ -275,7 +275,7 @@ function recv!(sig::Vector{Vector{Complex{T}}},radio::UHDRx;nbSamples=0,offset=0
 		# ---  x2 as input is complex and we feed real words
 		nbSamples 	= Csize_t(nbSamples);
 		# --- Ensure that the allocation is possible
-        @assert nbSamples < (length(sig[1])+posT) "Impossible to fill the buffer (number of samples > residual size";
+        @assert nbSamples < (length(sig[1])+posT) "Impossible to fill the buffer (number of samples > residual size)";
 	end
     global SIG = sig
 	while !filled 
