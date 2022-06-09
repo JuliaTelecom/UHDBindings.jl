@@ -50,7 +50,11 @@ const uhd_provider = get_provider()
         # A problem occured :D. Load manually the lib
         @warn "Unable to load libUHD using Yggdrasil. It probably means that the platform you use is not supported by artifact generated through Yggdrasil."
         @info "We fallback to local provider. It means that UHDBindings will work if you have installed a functionnal version of UHD on your system"
-        @info "You should specify the path of the uhd library (especailly on windows). This can be done with "
+        @info "You should specify the path of the uhd library (especially on windows). If you don't want to update the lib path enter \"\""
+        ml = readline() # User can set the lib path now 
+        if ml !== ""
+            set_lib_path(ml)
+        end
         myLib = get_lib_path()
         libUHD_system_h = dlopen(myLib, false);
         global tmp_libUHD =  dlpath(libUHD_system_h)
