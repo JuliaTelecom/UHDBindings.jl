@@ -55,6 +55,7 @@ mutable struct UHDRx
 	packetSize::Csize_t;
 	released::Int;
     nbAntennaRx::Int;
+    checkErrors::Bool;
 end
 
 # --- Structure with pointer reference

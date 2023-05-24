@@ -40,7 +40,7 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain;channels=[0],antenn
     # --- Init Rx stage 
     uhd	  = initRxUHD(pointerUSRP);
     # --- Create the structure to be updated 
-    rx = UHDRx(uhd,carrierFreq,samplingRate,gain,antennas,channels,0,0,nbAntennaRx);
+    rx = UHDRx(uhd,carrierFreq,samplingRate,gain,antennas,channels,0,0,nbAntennaRx,false);
     # ---------------------------------------------------- 
     # --- Radio configuration
     # ---------------------------------------------------- 
@@ -117,7 +117,7 @@ end
 """ 
 Create and launch a streamer with dedicated parameters 
 """
-function uhd_usrp_create_stream(rx::UHDRx;nbAntennaRx = 1, channels=[0],cpu_format="fc32",otw_format="sc16",args="",stream_mode=UHD_STREAM_MODE_START_CONTINUOUS,stream_now=true,full_sec_delay=0,frac_sec_delay=0,num_samps=-1)
+function uhd_usrp_create_stream(rx::UHDRx;nbAntennaRx = 1, channels=[0],cpu_format="fc32",otw_format="sc16",args="",stream_mode=UHD_STREAM_MODE_START_CONTINUOUS,stream_now=true,full_sec_delay=0,frac_sec_delay=0,num_samps=-1,check_errors=stream_mode in [UHD_STREAM_MODE_NUM_SAMPS_AND_DONE, UHD_STREAM_MODE_NUM_SAMPS_AND_MORE])
         # --- Streamer arguments
         a1			   =  Base.unsafe_convert(Cstring,cpu_format);
         a2			   =  Base.unsafe_convert(Cstring,otw_format);
@@ -131,17 +131,18 @@ function uhd_usrp_create_stream(rx::UHDRx;nbAntennaRx = 1, channels=[0],cpu_form
         @assert_uhd uhd_rx_streamer_max_num_samps(rx.uhd.pointerStreamer,pointerSamples)
         rx.packetSize= pointerSamples[]
         # --- Launch the stream
-        restartStreamer(rx;stream_mode,num_samps,stream_now,full_sec_delay,frac_sec_delay)
+        restartStreamer(rx;stream_mode,num_samps,stream_now,full_sec_delay,frac_sec_delay,check_errors)
 end
 
 """ 
 Restart the USRP streamer. In some cases (especially macOS) we have an issue with streamer congestion and we need to restart it. 
 By now, we have added the restart function in recv! method.
 """
-@inline function restartStreamer(rx::UHDRx;stream_mode=UHD_STREAM_MODE_START_CONTINUOUS,num_samps=-1,stream_now=true,full_sec_delay=0,frac_sec_delay=0)
+@inline function restartStreamer(rx::UHDRx;stream_mode=UHD_STREAM_MODE_START_CONTINUOUS,num_samps=-1,stream_now=true,full_sec_delay=0,frac_sec_delay=0,check_errors=stream_mode in [UHD_STREAM_MODE_NUM_SAMPS_AND_DONE, UHD_STREAM_MODE_NUM_SAMPS_AND_MORE])
     # ----------------------------------------------------
     # --- Start the streamer 
     # ---------------------------------------------------- 
+    rx.checkErrors = check_errors
     (num_samps == -1) && (num_samps = rx.packetSize)
     streamCmd	= UHDBindings.uhd_stream_cmd_t(stream_mode,num_samps,stream_now,full_sec_delay,frac_sec_delay);
     pointerCmd	= Ref{uhd_stream_cmd_t}(streamCmd);
@@ -320,7 +321,27 @@ function populateBuffer!(radio,ptr,nbSamples::Csize_t=0)
 	# --- Effectively recover data
 	pointerSamples = Ref{Csize_t}(0);
     uhd_rx_streamer_recv(radio.uhd.pointerStreamer,ptr,nbSamples,radio.uhd.addressMD,0.1,false,pointerSamples)
-		# --- Pointer deferencing 
+    # --- Check for errors
+    if radio.checkErrors && pointerSamples[] == 0
+        err = getError(radio)
+        if err != UHD_RX_METADATA_ERROR_CODE_NONE && err != UHD_RX_METADATA_ERROR_CODE_TIMEOUT
+            if err == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND
+                throw(LateCommandException())
+            elseif err == UHD_RX_METADATA_ERROR_CODE_BROKEN_CHAIN
+                throw(BrokenChainException())
+            elseif err == UHD_RX_METADATA_ERROR_CODE_OVERFLOW
+                throw(OverflowException())
+            elseif err == UHD_RX_METADATA_ERROR_CODE_ALIGNMENT
+                throw(AlignmentException())
+            elseif err == UHD_RX_METADATA_ERROR_CODE_BAD_PACKET
+                throw(BadPacketException())
+            else
+                # This should be unreachable
+                @warn "Unexpected UHD error code: $err"
+            end
+        end
+    end
+	# --- Pointer deferencing
 	return pointerSamples[];
 end#
 
