@@ -35,12 +35,20 @@ julia> import Pkg; Pkg.add("UHDBindings
 
 ## Project updates highlights 
 
+## Version 0.5 
+
+- Adding a system to manage error in populateBuffer. If the streamer is not continuous, then calling `recv()` or `recv!()` with an internal UHD errors leads to a error in the `recv`call.
+
+## Version 0.4 
+
+- Adding possibility to use default Yggdrasil lib system or use a custom library path. It can be useful if the proposed shipped version is not  the one provided by Yggdrasil. See `UHDBindings.set_provider`
+
 ## Version 0.3 
 - LibUHD refactor. Bindings have been generated with [`Clang.jl`](https://github.com/JuliaInterop/Clang.jl). It is possible to use a custom configuration after initialize the radio with `openUHD`. See the MIMO example 
 - API update ! We now support natively multiple boards and MIMO. 
 
 ## Version 0.2.2
-- The UHD lib is now automatically provided by Yggdrasil ! 
+- The UHD lib is now automatically provided by Yggdrasil !
 - It is still possible to use a custom local UHD installation with the use of `Preferences.jl` by setting `UHDBindings.set_provider("local")`
 
 
