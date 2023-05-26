@@ -297,5 +297,14 @@ export print;
 export close;
 export getBufferSize
 
+# ----------------------------------------------------
+# --- Error handling
+# ----------------------------------------------------
+abstract type UHDException <: Exception end
+struct LateCommandException <: UHDException end
+struct BrokenChainException <: UHDException end
+struct OverflowException <: UHDException end
+struct AlignmentException <: UHDException end
+struct BadPacketException <: UHDException end
 
 end # moduled # module
