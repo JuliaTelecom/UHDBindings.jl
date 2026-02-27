@@ -258,7 +258,7 @@ recv!(sig,radio,nbSamples)
 -
 """
 function recv!(sig::Vector{Vector{Complex{T}}},radio::UHDRx;nbSamples=0,offset=0) where T
-    # restartStreamer(radio)
+   #restartStreamer(radio)
 	# --- Defined parameters for multiple buffer reception 
 	filled		= false;
 	# --- Fill the input buffer @ a specific offset 
@@ -320,24 +320,28 @@ function populateBuffer!(radio,ptr,nbSamples::Csize_t=0)
 	#@assert nbSamples <= length(buffer.x) "Number of desired samples can not be greater than buffer size";
 	# --- Effectively recover data
 	pointerSamples = Ref{Csize_t}(0);
-    uhd_rx_streamer_recv(radio.uhd.pointerStreamer,ptr,nbSamples,radio.uhd.addressMD,0.1,false,pointerSamples)
+    radio.checkErrors = true
+    uhd_rx_streamer_recv(radio.uhd.pointerStreamer,ptr,nbSamples,radio.uhd.addressMD,1,false,pointerSamples)
     # --- Check for errors
     if radio.checkErrors && pointerSamples[] == 0
         err = getError(radio)
         if err != UHD_RX_METADATA_ERROR_CODE_NONE && err != UHD_RX_METADATA_ERROR_CODE_TIMEOUT
+            #println(".")
             if err == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND
-                throw(LateCommandException())
-            elseif err == UHD_RX_METADATA_ERROR_CODE_BROKEN_CHAIN
-                throw(BrokenChainException())
-            elseif err == UHD_RX_METADATA_ERROR_CODE_OVERFLOW
-                throw(OverflowException())
-            elseif err == UHD_RX_METADATA_ERROR_CODE_ALIGNMENT
-                throw(AlignmentException())
-            elseif err == UHD_RX_METADATA_ERROR_CODE_BAD_PACKET
-                throw(BadPacketException())
-            else
-                # This should be unreachable
-                @warn "Unexpected UHD error code: $err"
+                println("Late received packet < restart streamer >")
+                restartStreamer(radio)
+                #throw(LateCommandException())
+            # elseif err == UHD_RX_METADATA_ERROR_CODE_BROKEN_CHAIN
+            #     #throw(BrokenChainException())
+            # elseif err == UHD_RX_METADATA_ERROR_CODE_OVERFLOW
+            #     #throw(OverflowException())
+            # elseif err == UHD_RX_METADATA_ERROR_CODE_ALIGNMENT
+            #     #throw(AlignmentException())
+            # elseif err == UHD_RX_METADATA_ERROR_CODE_BAD_PACKET
+            #     #throw(BadPacketException())
+            # else
+            #     # This should be unreachable
+            #     @warn "Unexpected UHD error code: $err"
             end
         end
     end
