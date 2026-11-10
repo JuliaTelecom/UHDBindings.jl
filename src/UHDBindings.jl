@@ -272,7 +272,7 @@ end
 # Recv
 recv(radio::UHDBinding,nbSamples)  = recv(radio.rx,nbSamples);
 recv!(sig::Vector{Vector{T}},radio::UHDBinding;kwargs...) where T = recv!(sig,radio.rx;kwargs...);
-recv!(sig::Vector{T},radio::UHDBinding;kwargs...) where T = recv!([sig],radio.rx;kwargs...);
+recv!(sig::Vector{T},radio::UHDBinding;kwargs...) where T = recv!(sig,radio.rx;kwargs...);
 # Send 
 send(radio::UHDBinding,params...) = send(radio.tx,params...);
 

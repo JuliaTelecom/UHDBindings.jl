@@ -40,9 +40,10 @@ struct UHDRxWrapper
 	pointerUSRP::Ptr{uhd_usrp};
 	pointerStreamer::Ptr{uhd_rx_streamer};
 	pointerMD::Ptr{uhd_rx_metadata_t};
-	addressStream::Ref{uhd_rx_streamer_handle};
-	addressMD::Ref{uhd_rx_metadata_handle};
-	pointerSamples::Ref{Csize_t}
+	addressStream::Base.RefValue{uhd_rx_streamer_handle};
+	addressMD::Base.RefValue{uhd_rx_metadata_handle};
+	pointerSamples::Base.RefValue{Csize_t}                       # samples returned by the last streamer call
+	pointerError::Base.RefValue{uhd_rx_metadata_error_code_t}    # error code read by getError
 end 
 # --- Main Rx structure 
 mutable struct UHDRx 
@@ -56,6 +57,7 @@ mutable struct UHDRx
 	released::Int;
     nbAntennaRx::Int;
     checkErrors::Bool;
+    buffs::Vector{Ptr{Cvoid}};  # write position in the buffer of each antenna, given to the streamer
 end
 
 # --- Structure with pointer reference

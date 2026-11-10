@@ -18,10 +18,12 @@ function initRxUHD(pointerUSRP)
 	metadataPointer = addressMD[];
 # --- Pointer for counting number of samples 
 	pointerSamples = Ref{Csize_t}(0);
+	# --- Pointer for the error code of the metadata
+	pointerError = Ref{uhd_rx_metadata_error_code_t}(UHD_RX_METADATA_ERROR_CODE_NONE);
 	# ---------------------------------------------------- 
 	# --- Create the USRP wrapper object  
 	# ---------------------------------------------------- 
-	uhd  = UHDRxWrapper(true,pointerUSRP,streamerPointer,metadataPointer,addressStream,addressMD,pointerSamples);
+	uhd  = UHDRxWrapper(true,pointerUSRP,streamerPointer,metadataPointer,addressStream,addressMD,pointerSamples,pointerError);
 	return uhd;
 end
 
@@ -40,7 +42,7 @@ function openUHDRx(pointerUSRP,carrierFreq,samplingRate,gain;channels=[0],antenn
     # --- Init Rx stage 
     uhd	  = initRxUHD(pointerUSRP);
     # --- Create the structure to be updated 
-    rx = UHDRx(uhd,carrierFreq,samplingRate,gain,antennas,channels,0,0,nbAntennaRx,false);
+    rx = UHDRx(uhd,carrierFreq,samplingRate,gain,antennas,channels,0,0,nbAntennaRx,false,fill(C_NULL,nbAntennaRx));
     # ---------------------------------------------------- 
     # --- Radio configuration
     # ---------------------------------------------------- 
@@ -249,50 +251,58 @@ Get a single buffer from the USRP device, using the Buffer structure
 
 # --- Syntax 
 
-recv!(sig,radio,nbSamples)
+recv!(sig,radio;nbSamples=0,offset=0)
 # --- Input parameters 
-- sig	  : Complex signal to populate [Array{Complex{Cfloat}}]
+- sig	  : Complex signal to populate. One vector with a single Rx antenna [Array{Complex{Cfloat}}], one vector per antenna otherwise [Array{Array{Complex{Cfloat}}}]
 - radio	  : UHD object [UHDRx]
-- buffer  : Buffer object (obtained with setBuffer(radio)) [Buffer] 
+- nbSamples : Number of samples to acquire (0 to fill the buffer)
+- offset  : Position in the buffer of the first written sample
 # --- Output parameters 
--
+- Position in the buffer after the last written sample
+
+`recv!` does not allocate. A radio is read by one task at a time.
 """
 function recv!(sig::Vector{Vector{Complex{T}}},radio::UHDRx;nbSamples=0,offset=0) where T
-   #restartStreamer(radio)
+    return fillBuffers!(sig,radio,nbSamples,offset)
+end
+function recv!(sig::Vector{Complex{T}},radio::UHDRx;nbSamples=0,offset=0) where T
+    return fillBuffers!((sig,),radio,nbSamples,offset)
+end
+
+# Fill `sigs`, an indexable collection with one buffer per Rx antenna, with
+# samples from the radio.
+function fillBuffers!(sigs,radio::UHDRx,nbSamples,offset)
 	# --- Defined parameters for multiple buffer reception 
 	filled		= false;
 	# --- Fill the input buffer @ a specific offset 
-	if offset == 0 
-		posT		= Csize_t(0);
-	else 
-		posT 		= Csize_t(offset);
-	end
+	posT		= Csize_t(offset);
 	# --- Managing desired size and buffer size
 	if nbSamples == 0
 		# --- Fill all the buffer  
-		# x2 as input is complex and we feed real words
-        nbSamples	= Csize_t(length(sig[1]));
+        total	= Csize_t(length(sigs[1]));
 	else 
-		# ---  x2 as input is complex and we feed real words
-		nbSamples 	= Csize_t(nbSamples);
+		total 	= Csize_t(nbSamples);
 		# --- Ensure that the allocation is possible
-        @assert nbSamples < (length(sig[1])+posT) "Impossible to fill the buffer (number of samples > residual size)";
+        @assert total < (length(sigs[1])+posT) "Impossible to fill the buffer (number of samples > residual size)";
 	end
-    global SIG = sig
-	while !filled 
-		# --- Get a buffer: We should have radio.packetSize or less 
-		# radio.packetSize is the complex size, so x2
-		(posT+radio.packetSize> nbSamples) ? n = nbSamples - posT : n = radio.packetSize;
-		# --- To avoid memcopy, we direclty feed the pointer at the appropriate solution
-        ptr = [pointer(sig[k],1+posT) for k ∈ 1 : radio.nbAntennaRx]
-		# --- Populate buffer with radio samples
-		cSamples 	= populateBuffer!(radio,ptr,n);
-		# --- Update counters 
-		posT += cSamples; 
-		# @show Int(cSamples),Int(posT)
-		# --- Breaking flag
-		(posT == nbSamples) ? filled = true : filled = false;
-	end
+    buffs = radio.buffs
+    # The streamer writes through raw pointers: keep the buffers alive
+    GC.@preserve sigs begin
+        while !filled 
+            # --- Get a buffer: We should have radio.packetSize or less 
+            n = (posT+radio.packetSize > total) ? total - posT : radio.packetSize;
+            # --- To avoid memcopy, we direclty feed the pointer at the appropriate solution
+            for k ∈ 1 : radio.nbAntennaRx
+                buffs[k] = pointer(sigs[k],1+posT)
+            end
+            # --- Populate buffer with radio samples
+            cSamples 	= populateBuffer!(radio,buffs,n);
+            # --- Update counters 
+            posT += cSamples; 
+            # --- Breaking flag
+            filled = (posT == total);
+        end
+    end
 	return posT
 end
 
@@ -319,7 +329,8 @@ function populateBuffer!(radio,ptr,nbSamples::Csize_t=0)
 	end 
 	#@assert nbSamples <= length(buffer.x) "Number of desired samples can not be greater than buffer size";
 	# --- Effectively recover data
-	pointerSamples = Ref{Csize_t}(0);
+	pointerSamples = radio.uhd.pointerSamples;
+	pointerSamples[] = 0;
     radio.checkErrors = true
     uhd_rx_streamer_recv(radio.uhd.pointerStreamer,ptr,nbSamples,radio.uhd.addressMD,1,false,pointerSamples)
     # --- Check for errors
@@ -363,7 +374,7 @@ flag = getError(radio)
 - err	: Error Flag [error_code_t]
 """
 function getError(radio::UHDRx)
-	ptrErr = Ref{uhd_rx_metadata_error_code_t}();
+	ptrErr = radio.uhd.pointerError;
     uhd_rx_metadata_error_code(radio.uhd.pointerMD,ptrErr)
 	return err = ptrErr[];
 end
